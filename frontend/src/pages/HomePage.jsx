@@ -1,19 +1,34 @@
 import { useState } from 'react';
 import './HomePage.css';
 
-const HomePage = ({ onJoin }) => {
+const HomePage = ({ onJoin, onCreate }) => {
   const [username, setUsername] = useState('');
-  const [room, setRoom] = useState('');
+  const [roomId, setRoomId] = useState('');
 
-  // Fonction déclenchée par le bouton "GO" ou "Create"
-  const handleAction = (e) => {
-    e.preventDefault(); // Empêche le rechargement de page
-    
-    if (username.trim() && room.trim()) {
-      onJoin({ username, room });
-    } else {
-      alert("Please enter a name and a room!");
+  // Gestion du bouton "GO" (Rejoindre)
+  const handleJoinClick = (e) => {
+    e.preventDefault();
+    if (!username.trim()) {
+      alert("Il faut un pseudo !");
+      return;
     }
+    if (!roomId.trim()) {
+      alert("Il faut un ID de room pour rejoindre !");
+      return;
+    }
+    // On passe les infos au parent
+    onJoin(username, roomId);
+  };
+
+  // Gestion du bouton "CREATE ROOM"
+  const handleCreateClick = (e) => {
+    e.preventDefault();
+    if (!username.trim()) {
+      alert("Il faut un pseudo !");
+      return;
+    }
+    // Pour créer, pas besoin d'ID de room
+    onCreate(username);
   };
 
   return (
@@ -22,8 +37,7 @@ const HomePage = ({ onJoin }) => {
         
         <h1 className="game-title">SUPER CLICK<br/>BROS</h1>
         
-        {/* On met le onSubmit sur le formulaire global */}
-        <form onSubmit={handleAction}>
+        <form>
           <input
             type="text"
             className="retro-input"
@@ -34,22 +48,22 @@ const HomePage = ({ onJoin }) => {
             required
           />
           
-          {/* Zone Input + Bouton GO alignés */}
+          {/* Groupe Rejoindre */}
           <div className="input-group">
             <input
               type="text"
               className="retro-input"
-              placeholder="JOIN ROOM (ID)"
-              value={room}
-              onChange={(e) => setRoom(e.target.value)}
-              required
+              placeholder="ROOM ID (ex: Xk29aB)"
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value)}
             />
-            <button type="submit" className="retro-btn-go">
+            <button onClick={handleJoinClick} className="retro-btn-go">
               GO
             </button>
           </div>
 
-          <button type="submit" className="retro-btn">
+          {/* Bouton Créer */}
+          <button onClick={handleCreateClick} className="retro-btn">
             CREATE ROOM
           </button>
           
