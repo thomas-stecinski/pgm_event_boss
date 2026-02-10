@@ -1,130 +1,209 @@
-import { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
-import HomePage from './pages/HomePage'; 
-import Lobby from './pages/Lobby'; 
+import { useState, useEffect, useRef } from "react";
+import { io } from "socket.io-client";
+import HomePage from "./pages/HomePage";
+import Lobby from "./pages/Lobby";
 
 const BACKEND_URL = "http://localhost:3001";
 
-function App() {
-  const [socket, setSocket] = useState(null);
-  const [isConnected, setIsConnected] = useState(false); 
-  const [roomData, setRoomData] = useState(null);
-  const [user, setUser] = useState(null); 
+function waitForConnect(socket, timeoutMs = 6000) {
+  return new Promise((resolve, reject) => {
+    if (socket.connected) return resolve();
 
-  // Gestion de la déconnexion propre (Nettoyage)
+    const t = setTimeout(() => reject(new Error("SOCKET_CONNECT_TIMEOUT")), timeoutMs);
+
+    const onConnect = () => {
+      clearTimeout(t);
+      cleanup();
+      resolve();
+    };
+    const onErr = (err) => {
+      clearTimeout(t);
+      cleanup();
+      reject(err || new Error("CONNECT_ERROR"));
+    };
+    const cleanup = () => {
+      socket.off("connect", onConnect);
+      socket.off("connect_error", onErr);
+    };
+
+    socket.on("connect", onConnect);
+    socket.on("connect_error", onErr);
+  });
+}
+
+function emitAck(socket, event, payload, timeoutMs = 6000) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`${event}_ACK_TIMEOUT`)), timeoutMs);
+    socket.emit(event, payload, (ack) => {
+      clearTimeout(t);
+      resolve(ack);
+    });
+  });
+}
+
+export default function App() {
+  const socketRef = useRef(null);
+
+  const [isConnected, setIsConnected] = useState(false);
+  const [roomData, setRoomData] = useState(null);
+  const [user, setUser] = useState(null); // {token,userId,name}
+
   useEffect(() => {
     return () => {
-      if (socket) socket.disconnect();
+      socketRef.current?.disconnect();
+      socketRef.current = null;
     };
-  }, [socket]);
+  }, []);
 
-  // Authentification HTTP
   const authenticateUser = async (name) => {
+    const response = await fetch(`${BACKEND_URL}/auth/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+
+    const data = await response
+      .json()
+      .catch(async () => ({ message: await response.text() }));
+
+    if (!response.ok) throw new Error(data?.message || "Erreur auth");
+    return data;
+  };
+
+  // connecte/maintient la socket pour un user donné
+  const ensureSocketConnected = async (userData) => {
+    if (socketRef.current && socketRef.current.connected && user?.userId === userData.userId) {
+      return socketRef.current;
+    }
+
+    socketRef.current?.disconnect();
+
+    const s = io(BACKEND_URL, {
+      auth: { token: userData.token },
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: 10,
+    });
+
+    s.on("connect", () => setIsConnected(true));
+    s.on("disconnect", () => setIsConnected(false));
+
+    s.on("connect_error", (err) => {
+      console.error("connect_error:", err.message, err.data);
+      alert("Connexion au serveur de jeu impossible (token ? serveur ?)");
+    });
+
+    // (tu peux laisser même si on s'en fout des rooms)
+    s.on("room:update", (data) => setRoomData(data));
+
+    socketRef.current = s;
+    await waitForConnect(s);
+    return s;
+  };
+
+  // ✅ GO USERNAME = AUTH + SOCKET ONLY (pas de room)
+  const handleAuth = async (username) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/auth/token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      });
-      if (!response.ok) throw new Error("Erreur auth");
-      return await response.json();
-    } catch (error) {
-      console.error(error);
-      alert("Erreur de connexion au serveur d'auth");
-      return null;
+      const name = username.trim();
+      if (!name) return alert("Il faut un pseudo !");
+
+      const userData = await authenticateUser(name);
+      setUser(userData);
+
+      await ensureSocketConnected(userData);
+
+      // petit feedback
+      console.log("AUTH OK:", userData);
+      // optionnel : alert("Connecté !");
+    } catch (e) {
+      console.error(e);
+      alert(`Auth: ${e.message}`);
     }
   };
 
-  // Initialisation Socket
-  const initSocket = (userData) => {
-    if (socket) return socket; // Évite les doublons
+  // rooms : on garde ton code si tu veux, mais ça ne dépend plus du GO pseudo
+  const handleCreate = async () => {
+    try {
+      if (!user) return alert("Fais GO sur ton pseudo d'abord !");
+      const s = socketRef.current;
+      if (!s?.connected) return alert("Socket pas connectée. Refais GO sur ton pseudo.");
 
-    const newSocket = io(BACKEND_URL, {
-      auth: { token: userData.token }
-    });
+      const ack = await emitAck(s, "room:create", {});
+      console.log("ACK create:", ack);
 
-    newSocket.on("connect", () => setIsConnected(true));
-    newSocket.on("disconnect", () => setIsConnected(false));
-    
-    newSocket.on("connect_error", (err) => {
-      console.error("Erreur socket:", err.message);
-      alert("Impossible de se connecter au serveur de jeu");
-    });
-
-    // LE COEUR DU SYSTÈME : Mise à jour de l'état
-    newSocket.on("room:update", (data) => {
-      console.log("Mise à jour reçue:", data);
-      setRoomData(data); 
-    });
-
-    setSocket(newSocket);
-    return newSocket;
-  };
-
-  // Actions
-  const handleCreate = async (username) => {
-    const userData = await authenticateUser(username);
-    if (!userData) return;
-    setUser(userData);
-
-    const socketInstance = initSocket(userData);
-    // On attend la connexion pour émettre
-    socketInstance.emit("room:create");
-  };
-
-  const handleJoin = async (username, roomId) => {
-    const userData = await authenticateUser(username);
-    if (!userData) return;
-    setUser(userData);
-
-    const socketInstance = initSocket(userData);
-    
-    socketInstance.on("connect", () => {
-       socketInstance.emit("room:join", { roomId }, (ack) => {
-          if (!ack.ok) {
-             alert("Impossible de rejoindre (Room pleine ou inexistante ?)");
-             socketInstance.disconnect();
-             setRoomData(null);
-             setUser(null);
-          }
-       });
-    });
-  };
-
-  const handleLeave = () => {
-    if (socket) {
-      socket.emit("room:leave");
-      socket.disconnect(); 
+      if (!ack?.ok) alert(`Create failed: ${ack?.error || "CREATE_ROOM_FAILED"}`);
+    } catch (e) {
+      console.error(e);
+      alert(`Create: ${e.message}`);
     }
-    setRoomData(null);
-    setSocket(null);
-    setIsConnected(false);
+  };
+
+  const handleJoin = async (roomId) => {
+    try {
+      const rid = roomId.trim();
+      if (!user) return alert("Fais GO sur ton pseudo d'abord !");
+      if (!rid) return alert("Il faut un ID de room pour rejoindre !");
+
+      const s = socketRef.current;
+      if (!s?.connected) return alert("Socket pas connectée. Refais GO sur ton pseudo.");
+
+      const ack = await emitAck(s, "room:join", { roomId: rid });
+      console.log("ACK join:", ack);
+
+      if (!ack?.ok) alert(`Join failed: ${ack?.error || "JOIN_ROOM_FAILED"}`);
+    } catch (e) {
+      console.error(e);
+      alert(`Join: ${e.message}`);
+    }
+  };
+
+  const handleLeave = async () => {
+    try {
+      const s = socketRef.current;
+      if (s?.connected) {
+        await emitAck(s, "room:leave", {}).catch(() => {});
+      }
+      s?.disconnect();
+    } finally {
+      socketRef.current = null;
+      setRoomData(null);
+      setUser(null);
+      setIsConnected(false);
+    }
   };
 
   return (
     <div>
-      {/* Indicateur de connexion (Petit point en bas à droite) */}
-      <div style={{
-        position: 'fixed', bottom: 10, right: 10, 
-        padding: '5px 10px', background: '#000', color: '#fff',
-        fontFamily: 'monospace', fontSize: '10px', zIndex: 9999
-      }}>
-        NET: <span style={{ color: isConnected ? '#0f0' : '#f00' }}>
-          {isConnected ? 'ONLINE' : 'OFFLINE'}
+      <div
+        style={{
+          position: "fixed",
+          bottom: 10,
+          right: 10,
+          padding: "5px 10px",
+          background: "#000",
+          color: "#fff",
+          fontFamily: "monospace",
+          fontSize: "10px",
+          zIndex: 9999,
+        }}
+      >
+        NET:{" "}
+        <span style={{ color: isConnected ? "#0f0" : "#f00" }}>
+          {isConnected ? "ONLINE" : "OFFLINE"}
         </span>
       </div>
 
+      {/* Tant qu'on s'en fout des rooms, tu peux rester sur HomePage */}
       {!roomData ? (
-        <HomePage onCreate={handleCreate} onJoin={handleJoin} />
-      ) : (
-        <Lobby 
-          roomData={roomData} 
-          currentUserId={user?.userId} 
-          onLeave={handleLeave} 
+        <HomePage
+          onAuth={handleAuth}
+          onCreate={handleCreate}
+          onJoin={handleJoin}
+          isAuthed={!!user}
         />
+      ) : (
+        <Lobby roomData={roomData} currentUserId={user?.userId} onLeave={handleLeave} />
       )}
     </div>
   );
 }
-
-export default App; 
