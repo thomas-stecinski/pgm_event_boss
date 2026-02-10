@@ -1,5 +1,6 @@
 const express = require("express");
 const { z } = require("zod");
+const { nanoid } = require("nanoid");
 const { signToken } = require("./token");
 
 const authHttpRouter = express.Router();

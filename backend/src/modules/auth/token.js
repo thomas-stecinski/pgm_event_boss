@@ -13,7 +13,7 @@ function verifyToken(token) {
 function socketAuthMiddleware(socket, next) {
   try {
     // Envoyé dans auth.token
-    const token = socket.handshake?.auth?.token;
+    const token = socket.handshake?.auth?.token || socket.handshake.headers.token;
     if (!token) return next(new Error("TOKEN_MISSING"));
 
     const payload = verifyToken(token);
