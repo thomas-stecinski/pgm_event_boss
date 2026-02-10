@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
@@ -9,11 +11,11 @@ const app = express();
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(express.json());
 
-app.get("/health", (_, res) => res.json({ ok: true }));
-app.use("/auth", authHttpRouter);
+// app.get("/health", (_, res) => res.json({ ok: true }));
+// app.use("/auth", authHttpRouter);
 
 const server = http.createServer(app);
-createSocketServer(server);
+// createSocketServer(server);
 
 server.listen(env.PORT, () => {
   console.log(`[api] listening on http://localhost:${env.PORT}`);
