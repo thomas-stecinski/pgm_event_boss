@@ -1,7 +1,6 @@
 /* Import d'une police Google Font "Pixel" */
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-/* Reset basique pour éviter les décalages */
 body, html {
   margin: 0;
   padding: 0;
@@ -12,8 +11,8 @@ body, html {
 /* Le conteneur principal qui prend tout l'écran */
 .game-container {
   display: flex;
-  justify-content: center; /* Centre horizontalement */
-  align-items: center;     /* Centre verticalement */
+  justify-content: center;
+  align-items: center;
   height: 100vh;
   width: 100vw;
   
@@ -30,10 +29,10 @@ body, html {
 
 /* La carte du formulaire (la boîte blanche/jaune au milieu) */
 .game-card {
-  background-color: #fbd000; /* Jaune "Pièce" Mario */
+  background-color: #fbd000; 
   padding: 3rem;
   border: 4px solid #000;
-  box-shadow: 8px 8px 0px #000; /* Ombre dure décalée */
+  box-shadow: 8px 8px 0px #000; 
   border-radius: 4px;
   text-align: center;
   max-width: 400px;
@@ -60,7 +59,7 @@ body, html {
   border: 4px solid #000;
   font-family: 'Press Start 2P', cursive;
   font-size: 0.8rem;
-  box-sizing: border-box; /* Important pour ne pas dépasser */
+  box-sizing: border-box;
   outline: none;
   color: #000000;
   transition: background-color 0.1s;
@@ -75,7 +74,7 @@ body, html {
   font-family: 'Press Start 2P', cursive;
   font-size: 1rem;
   cursor: pointer;
-  box-shadow: 4px 4px 0px #000; /* Ombre dure */
+  box-shadow: 4px 4px 0px #000;
   transition: transform 0.1s, box-shadow 0.1s;
   width: 100%;
   margin-top: 10px;
@@ -84,17 +83,16 @@ body, html {
 /* Conteneur pour aligner l'input et le bouton côte à côte */
 .input-group {
   display: flex;
-  gap: 10px; /* Espace entre l'input et le bouton */
+  gap: 10px; 
   margin-bottom: 15px;
 }
 
-/* Modification de l'input quand il est dans le groupe pour qu'il prenne la place restante */
 .input-group .retro-input {
-  margin-bottom: 0; /* On enlève la marge du bas pour l'alignement */
-  flex-grow: 1;     /* L'input prend toute la largeur disponible */
+  margin-bottom: 0; 
+  flex-grow: 1;
 }
 
-/* Le petit bouton "GO" (Vert Luigi) */
+/* Le petit bouton "GO" */
 .retro-btn-go {
   background-color: #00a000; /* Vert Luigi */
   color: #fff;
@@ -102,9 +100,8 @@ body, html {
   font-family: 'Press Start 2P', cursive;
   cursor: pointer;
   box-shadow: 4px 4px 0px #000;
-  padding: 0 20px; /* Largeur du bouton */
+  padding: 0 20px; 
   font-size: 0.8rem;
-  /* Pour centrer le texte verticalement si besoin */
   display: flex;
   align-items: center;
   justify-content: center;
