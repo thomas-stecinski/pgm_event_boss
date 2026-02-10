@@ -43,10 +43,11 @@ function emitAck(socket, event, payload, timeoutMs = 6000) {
 
 export default function App() {
   const socketRef = useRef(null);
+  const userRef = useRef(null);
 
   const [isConnected, setIsConnected] = useState(false);
   const [roomData, setRoomData] = useState(null);
-  const [user, setUser] = useState(null); // {token,userId,name}
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     return () => {
@@ -56,101 +57,111 @@ export default function App() {
   }, []);
 
   const authenticateUser = async (name) => {
-    const response = await fetch(`${BACKEND_URL}/auth/token`, {
+    const res = await fetch(`${BACKEND_URL}/auth/token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     });
 
-    const data = await response
-      .json()
-      .catch(async () => ({ message: await response.text() }));
-
-    if (!response.ok) throw new Error(data?.message || "Erreur auth");
-    return data;
+    const data = await res.json().catch(async () => ({ message: await res.text() }));
+    if (!res.ok) throw new Error(data?.message || "Erreur auth");
+    return data; // { token, userId, name }
   };
 
-  // connecte/maintient la socket pour un user donné
-  const ensureSocketConnected = async (userData) => {
-    if (socketRef.current && socketRef.current.connected && user?.userId === userData.userId) {
-      return socketRef.current;
-    }
+  const connectSocketWithToken = async (token) => {
+    // garde une seule socket
+    if (socketRef.current?.connected) return socketRef.current;
 
     socketRef.current?.disconnect();
 
     const s = io(BACKEND_URL, {
-      auth: { token: userData.token },
+      auth: { token },
       transports: ["websocket"],
-      reconnection: true,
-      reconnectionAttempts: 10,
     });
 
-    s.on("connect", () => setIsConnected(true));
-    s.on("disconnect", () => setIsConnected(false));
+    s.on("connect", () => {
+      setIsConnected(true);
+      console.log("[front] connected socket.id=", s.id);
+    });
+
+    s.on("disconnect", (reason) => {
+      setIsConnected(false);
+      console.log("[front] disconnected:", reason);
+    });
 
     s.on("connect_error", (err) => {
-      console.error("connect_error:", err.message, err.data);
-      alert("Connexion au serveur de jeu impossible (token ? serveur ?)");
+      console.error("[front] connect_error:", err.message, err.data);
+      alert("Connexion socket impossible");
     });
 
-    // (tu peux laisser même si on s'en fout des rooms)
-    s.on("room:update", (data) => setRoomData(data));
+    s.on("room:update", (data) => {
+      console.log("[front] room:update:", data);
+      setRoomData(data); // ✅ c'est ça qui fait basculer sur Lobby
+    });
 
     socketRef.current = s;
     await waitForConnect(s);
     return s;
   };
 
-  // ✅ GO USERNAME = AUTH + SOCKET ONLY (pas de room)
-  const handleAuth = async (username) => {
+  // GO pseudo = auth + connect
+  const handleAuth = async (name) => {
     try {
-      const name = username.trim();
-      if (!name) return alert("Il faut un pseudo !");
-
-      const userData = await authenticateUser(name);
+      const userData = await authenticateUser(name.trim());
+      userRef.current = userData;
       setUser(userData);
 
-      await ensureSocketConnected(userData);
+      await connectSocketWithToken(userData.token);
 
-      // petit feedback
       console.log("AUTH OK:", userData);
-      // optionnel : alert("Connecté !");
     } catch (e) {
       console.error(e);
       alert(`Auth: ${e.message}`);
     }
   };
 
-  // rooms : on garde ton code si tu veux, mais ça ne dépend plus du GO pseudo
+  // CREATE ROOM
   const handleCreate = async () => {
     try {
-      if (!user) return alert("Fais GO sur ton pseudo d'abord !");
-      const s = socketRef.current;
-      if (!s?.connected) return alert("Socket pas connectée. Refais GO sur ton pseudo.");
+      const u = userRef.current;
+      if (!u) return alert("Fais GO sur PLAYER NAME d'abord !");
 
-      const ack = await emitAck(s, "room:create", {});
+      const s = await connectSocketWithToken(u.token);
+
+      const ack = await emitAck(s, "room:create", {}); // payload {}
       console.log("ACK create:", ack);
 
-      if (!ack?.ok) alert(`Create failed: ${ack?.error || "CREATE_ROOM_FAILED"}`);
+      if (!ack?.ok) {
+        alert(`Create failed: ${ack?.error || "CREATE_ROOM_FAILED"}`);
+        return;
+      }
+
+      // ✅ normalement room:update arrive juste après via emitRoomState()
+      // Si tu veux un fallback immédiat:
+      // setRoomData({ room: ack.room, players: [{ userId: u.userId, name: u.name }] });
     } catch (e) {
       console.error(e);
       alert(`Create: ${e.message}`);
     }
   };
 
+  // JOIN ROOM
   const handleJoin = async (roomId) => {
     try {
+      const u = userRef.current;
+      if (!u) return alert("Fais GO sur PLAYER NAME d'abord !");
+
       const rid = roomId.trim();
-      if (!user) return alert("Fais GO sur ton pseudo d'abord !");
       if (!rid) return alert("Il faut un ID de room pour rejoindre !");
 
-      const s = socketRef.current;
-      if (!s?.connected) return alert("Socket pas connectée. Refais GO sur ton pseudo.");
+      const s = await connectSocketWithToken(u.token);
 
       const ack = await emitAck(s, "room:join", { roomId: rid });
       console.log("ACK join:", ack);
 
-      if (!ack?.ok) alert(`Join failed: ${ack?.error || "JOIN_ROOM_FAILED"}`);
+      if (!ack?.ok) {
+        alert(`Join failed: ${ack?.error || "JOIN_ROOM_FAILED"}`);
+      }
     } catch (e) {
       console.error(e);
       alert(`Join: ${e.message}`);
@@ -159,13 +170,13 @@ export default function App() {
 
   const handleLeave = async () => {
     try {
-      const s = socketRef.current;
-      if (s?.connected) {
-        await emitAck(s, "room:leave", {}).catch(() => {});
+      if (socketRef.current?.connected) {
+        await emitAck(socketRef.current, "room:leave", {}).catch(() => {});
       }
-      s?.disconnect();
+      socketRef.current?.disconnect();
     } finally {
       socketRef.current = null;
+      userRef.current = null;
       setRoomData(null);
       setUser(null);
       setIsConnected(false);
@@ -193,7 +204,6 @@ export default function App() {
         </span>
       </div>
 
-      {/* Tant qu'on s'en fout des rooms, tu peux rester sur HomePage */}
       {!roomData ? (
         <HomePage
           onAuth={handleAuth}
