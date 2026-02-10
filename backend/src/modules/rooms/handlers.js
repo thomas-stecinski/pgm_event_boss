@@ -10,6 +10,16 @@ function emitRoomState(io, roomId) {
   })();
 }
 
+async function assignTeamForNewPlayer(roomId, user, gameRedis) {
+  const players = await gameRedis.getPlayers(roomId);
+  const countA = players.filter(p => p.team === "A").length;
+  const countB = players.filter(p => p.team === "B").length;
+  const team = countA <= countB ? "A" : "B";
+
+  await gameRedis.setPlayerTeam(roomId, user.userId, { ...user, team });
+  return team;
+}
+
 function registerRoomHandlers(io, socket) {
   // Utils: join socket room + store current room
   socket.data.currentRoomId = null;
@@ -18,7 +28,6 @@ function registerRoomHandlers(io, socket) {
     try {
       const { roomId: maybeId } = createRoomSchema.parse(payload ?? {});
       const roomId = maybeId || nanoid(6);
-
       const room = await createRoom({
         roomId,
         hostUser: socket.user,
