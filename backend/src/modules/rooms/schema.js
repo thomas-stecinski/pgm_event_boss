@@ -1,7 +1,7 @@
 const { z } = require("zod");
 
 const createRoomSchema = z.object({
-    roomId: z.string().min(3).max(32).optional
+    roomId: z.string().min(3).max(32).optional()
 });
 
 
