@@ -14,13 +14,13 @@ function socketAuthMiddleware(socket, next) {
   try {
     // Envoyé dans auth.token
     const token = socket.handshake?.auth?.token;
-    if (!token) return next(new Error("Auth token missing"));
+    if (!token) return next(new Error("TOKEN_MISSING"));
 
     const payload = verifyToken(token);
     socket.user = { userId: payload.userId, name: payload.name };
     return next();
   } catch (e) {
-    return next(new Error("Invalid token"));
+    return next(new Error("INVALID_TOKEN"));
   }
 }
 
