@@ -1,25 +1,47 @@
-import React from 'react';
-import './Lobby.css'; 
+import React, { useState } from 'react';
+import './Lobby.css';
 
 const Lobby = ({ roomData, currentUserId, onLeave }) => {
   const { room, players } = roomData;
   const isHost = room.hostUserId === currentUserId;
 
-  const copyRoomId = () => {
-    navigator.clipboard.writeText(room.roomId);
-    alert("ID copié dans le presse-papier !"); 
+  const [copied, setCopied] = useState(false);
+
+  const copyRoomId = async () => {
+    try {
+      await navigator.clipboard.writeText(room.roomId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 600); // court = effet punchy
+    } catch (e) {
+      console.error("Copy failed", e);
+      // optionnel: fallback si clipboard bloqué
+      // prompt("Copie l'ID:", room.roomId);
+    }
   };
 
   return (
     <div className="game-container">
       <div className="lobby-card">
         <div className="lobby-header">
-          <h2 className="room-title">WORLD {room.roomId}</h2>
-          <button className="copy-btn" onClick={copyRoomId} title="Copier l'ID">📋</button>
+          <h2 className={`room-title ${copied ? "copied" : ""}`}>
+            Room:{room.roomId}
+          </h2>
+
+          <button
+            className={`copy-btn ${copied ? "copied" : ""}`}
+            onClick={copyRoomId}
+            title="Copier l'ID"
+            type="button"
+          >
+            {copied ? "✔" : "📋"}
+          </button>
         </div>
 
         <div className="status-bar">
-           STATUS: <span className={room.status === "WAITING" ? "blink" : ""}>{room.status}</span>
+          STATUS:{" "}
+          <span className={room.status === "WAITING" ? "blink" : ""}>
+            {room.status}
+          </span>
         </div>
 
         <div className="players-list">
@@ -42,8 +64,8 @@ const Lobby = ({ roomData, currentUserId, onLeave }) => {
               START GAME
             </button>
           )}
-          <button onClick={onLeave} className="retro-btn leave-btn">
-            EXIT PIPE
+          <button onClick={onLeave} className="retro-btn leave-btn" type="button">
+            EXIT ROOM
           </button>
         </div>
       </div>

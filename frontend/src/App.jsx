@@ -69,7 +69,7 @@ export default function App() {
   };
 
   const connectSocketWithToken = async (token) => {
-    // garde une seule socket
+    // si socket déjà connectée, on la réutilise
     if (socketRef.current?.connected) return socketRef.current;
 
     socketRef.current?.disconnect();
@@ -96,7 +96,7 @@ export default function App() {
 
     s.on("room:update", (data) => {
       console.log("[front] room:update:", data);
-      setRoomData(data); // ✅ c'est ça qui fait basculer sur Lobby
+      setRoomData(data);
     });
 
     socketRef.current = s;
@@ -104,57 +104,43 @@ export default function App() {
     return s;
   };
 
-  // GO pseudo = auth + connect
-  const handleAuth = async (name) => {
+  // CREATE ROOM = auth + connect + create
+  const handleCreate = async (username) => {
     try {
-      const userData = await authenticateUser(name.trim());
+      const name = username.trim();
+      if (!name) return alert("Il faut un pseudo !");
+
+      const userData = await authenticateUser(name);
       userRef.current = userData;
       setUser(userData);
 
-      await connectSocketWithToken(userData.token);
+      const s = await connectSocketWithToken(userData.token);
 
-      console.log("AUTH OK:", userData);
-    } catch (e) {
-      console.error(e);
-      alert(`Auth: ${e.message}`);
-    }
-  };
-
-  // CREATE ROOM
-  const handleCreate = async () => {
-    try {
-      const u = userRef.current;
-      if (!u) return alert("Fais GO sur PLAYER NAME d'abord !");
-
-      const s = await connectSocketWithToken(u.token);
-
-      const ack = await emitAck(s, "room:create", {}); // payload {}
+      const ack = await emitAck(s, "room:create", {});
       console.log("ACK create:", ack);
 
       if (!ack?.ok) {
         alert(`Create failed: ${ack?.error || "CREATE_ROOM_FAILED"}`);
-        return;
       }
-
-      // ✅ normalement room:update arrive juste après via emitRoomState()
-      // Si tu veux un fallback immédiat:
-      // setRoomData({ room: ack.room, players: [{ userId: u.userId, name: u.name }] });
     } catch (e) {
       console.error(e);
       alert(`Create: ${e.message}`);
     }
   };
 
-  // JOIN ROOM
-  const handleJoin = async (roomId) => {
+  // JOIN = auth + connect + join
+  const handleJoin = async (username, roomId) => {
     try {
-      const u = userRef.current;
-      if (!u) return alert("Fais GO sur PLAYER NAME d'abord !");
-
+      const name = username.trim();
       const rid = roomId.trim();
+      if (!name) return alert("Il faut un pseudo !");
       if (!rid) return alert("Il faut un ID de room pour rejoindre !");
 
-      const s = await connectSocketWithToken(u.token);
+      const userData = await authenticateUser(name);
+      userRef.current = userData;
+      setUser(userData);
+
+      const s = await connectSocketWithToken(userData.token);
 
       const ack = await emitAck(s, "room:join", { roomId: rid });
       console.log("ACK join:", ack);
@@ -205,12 +191,7 @@ export default function App() {
       </div>
 
       {!roomData ? (
-        <HomePage
-          onAuth={handleAuth}
-          onCreate={handleCreate}
-          onJoin={handleJoin}
-          isAuthed={!!user}
-        />
+        <HomePage onCreate={handleCreate} onJoin={handleJoin} />
       ) : (
         <Lobby roomData={roomData} currentUserId={user?.userId} onLeave={handleLeave} />
       )}
