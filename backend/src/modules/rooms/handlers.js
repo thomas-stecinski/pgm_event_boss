@@ -1,6 +1,6 @@
 const { nanoid } = require("nanoid");
 const { createRoomSchema, joinRoomSchema } = require("./schema");
-const { createRoom, getRoom, getPlayers, addPlayer, removePlayer } = require("./redis");
+const { createRoom, getRoom, getPlayers, addPlayer, removePlayer, deleteRoom, getAllRooms } = require("./redis");
 const gameRedis = require("../game/redis");
 
 function emitRoomState(io, roomId) {
