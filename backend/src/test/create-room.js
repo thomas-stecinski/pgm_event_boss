@@ -1,7 +1,7 @@
 const { io } = require("socket.io-client");
 
 const URL = "http://localhost:3001"; 
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0aEFNSFVNVExBIiwibmFtZSI6Im1hcmllIiwiaWF0IjoxNzcwNzMyMDc5LCJleHAiOjE3NzA3MzkyNzl9.r1TgovLCNSV29ItMX5M7RmizCHVGvsL9P1CFg1xhyP4";
+const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJKZzRJX2ZwcGZYIiwibmFtZSI6Im1hcmllIiwiaWF0IjoxNzcwNzk4NTE4LCJleHAiOjE3NzA4MDU3MTh9.klaDPPPnQejiypqngXDxv4_O1IJXjUHnxHTLydz1CEM";
 
 const socket = io(URL, {
   transports: ["websocket"], 
