@@ -16,6 +16,15 @@ function clicksKey(roomId) {
 function playerScoresKey(roomId) {
   return `room:${roomId}:playerScores`;
 }
+function powersKey(roomId) {
+  return `room:${roomId}:powers`;
+}
+function offersKey(roomId) {
+  return `room:${roomId}:offers`;
+}
+function clickCountsKey(roomId) {
+  return `room:${roomId}:clickCounts`;
+}
 
 async function getRoom(roomId) {
   const room = await redis.hgetall(roomKey(roomId));
@@ -51,9 +60,9 @@ async function getScores(roomId) {
   };
 }
 
-// Augmente le score de 1 de en fonction de l'équipe A ou B
-async function incrScore(roomId, team) {
-  const value = await redis.hincrby(scoresKey(roomId), team, 1);
+// Augmente le score en fonction de l'équipe A ou B
+async function incrScore(roomId, team, amount = 1) {
+  const value = await redis.hincrby(scoresKey(roomId), team, amount);
   return Number(value);
 }
 
@@ -102,6 +111,52 @@ async function getAllPlayerScores(roomId) {
 }
 
 
+// --- Pouvoirs ---
+
+async function setPlayerPower(roomId, userId, powerId) {
+  await redis.hset(powersKey(roomId), userId, powerId);
+}
+
+async function getPlayerPower(roomId, userId) {
+  return await redis.hget(powersKey(roomId), userId);
+}
+
+async function resetPowers(roomId) {
+  await redis.del(powersKey(roomId));
+}
+
+// --- Offres de pouvoirs (3 aleatoires par joueur) ---
+
+async function setPlayerOffers(roomId, userId, offers) {
+  await redis.hset(offersKey(roomId), userId, JSON.stringify(offers));
+}
+
+async function getPlayerOffers(roomId, userId) {
+  const json = await redis.hget(offersKey(roomId), userId);
+  return json ? JSON.parse(json) : null;
+}
+
+async function resetOffers(roomId) {
+  await redis.del(offersKey(roomId));
+}
+
+// --- Compteur de clics bruts (pour Bombe / Furie) ---
+
+async function incrClickCount(roomId, userId) {
+  const value = await redis.hincrby(clickCountsKey(roomId), userId, 1);
+  return Number(value);
+}
+
+async function resetClickCounts(roomId) {
+  await redis.del(clickCountsKey(roomId));
+}
+
+// --- choosingEndsAt (phase de selection de pouvoir) ---
+
+async function setRoomChoosingEndsAt(roomId, ts) {
+  await redis.hset(roomKey(roomId), { choosingEndsAt: String(ts) });
+}
+
 module.exports = {
     getRoom,
     getPlayers,
@@ -109,6 +164,7 @@ module.exports = {
     setPlayerTeam,
     setRoomStatus,
     setRoomEndsAt,
+    setRoomChoosingEndsAt,
     resetScores,
     getScores,
     incrScore,
@@ -117,5 +173,13 @@ module.exports = {
     resetPlayerScores,
     getPlayerScore,
     incrPlayerScore,
-    getAllPlayerScores
+    getAllPlayerScores,
+    setPlayerPower,
+    getPlayerPower,
+    resetPowers,
+    setPlayerOffers,
+    getPlayerOffers,
+    resetOffers,
+    incrClickCount,
+    resetClickCounts,
 };
