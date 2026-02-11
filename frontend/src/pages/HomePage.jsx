@@ -1,29 +1,39 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./HomePage.css";
 
-const HomePage = ({ onJoin, onCreate }) => {
+const LS_USERNAME_KEY = "scb_username";
+
+const HomePage = ({ onCreate, onGoRooms }) => {
   const [username, setUsername] = useState("");
-  const [roomId, setRoomId] = useState("");
 
-  const handleJoinClick = (e) => {
-    e.preventDefault();
+  // ✅ au chargement, on restaure le pseudo
+  useEffect(() => {
+    const saved = localStorage.getItem(LS_USERNAME_KEY);
+    if (saved) setUsername(saved);
+  }, []);
 
-    const name = username.trim();
-    const rid = roomId.trim();
-
-    if (!name) return alert("Il faut un pseudo !");
-    if (!rid) return alert("Il faut un ID de room pour rejoindre !");
-
-    onJoin(name, rid); // ✅ on passe username + roomId
-  };
+  // ✅ à chaque changement, on sauvegarde
+  useEffect(() => {
+    const clean = (username || "").trim();
+    if (!clean) {
+      localStorage.removeItem(LS_USERNAME_KEY);
+    } else {
+      localStorage.setItem(LS_USERNAME_KEY, clean);
+    }
+  }, [username]);
 
   const handleCreateClick = (e) => {
     e.preventDefault();
-
     const name = username.trim();
     if (!name) return alert("Il faut un pseudo !");
+    onCreate?.(name);
+  };
 
-    onCreate(name); // ✅ on passe username
+  const handleResearchClick = (e) => {
+    e.preventDefault();
+    const name = username.trim();
+    if (!name) return alert("Il faut un pseudo !");
+    onGoRooms?.(name);
   };
 
   return (
@@ -33,8 +43,7 @@ const HomePage = ({ onJoin, onCreate }) => {
           SUPER CLICK<br />BROS
         </h1>
 
-        <form>
-          {/* PLAYER NAME (sans bouton GO) */}
+        <form className="game-form">
           <input
             type="text"
             className="retro-input"
@@ -45,23 +54,12 @@ const HomePage = ({ onJoin, onCreate }) => {
             required
           />
 
-          {/* JOIN ROOM */}
-          <div className="input-group">
-            <input
-              type="text"
-              className="retro-input"
-              placeholder="ROOM ID (ex: Xk29aB)"
-              value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
-            />
-            <button type="button" onClick={handleJoinClick} className="retro-btn-go">
-              GO
-            </button>
-          </div>
-
-          {/* CREATE ROOM */}
           <button type="button" onClick={handleCreateClick} className="retro-btn">
             CREATE ROOM
+          </button>
+
+          <button type="button" onClick={handleResearchClick} className="retro-btn-search">
+            RESEARCH ROOM
           </button>
         </form>
       </div>

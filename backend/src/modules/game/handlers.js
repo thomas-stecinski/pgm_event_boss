@@ -71,8 +71,10 @@ async function stopRoomTimer(roomId) {
 function registerGameHandlers(io, socket) {
   socket.on("game:start", async (payload, ack) => {
     try {
-      const { roomId: pRoomId } = gameStartSchema.parse(payload ?? {});
+      const { roomId: pRoomId, durationSec : pDurationSec} = gameStartSchema.parse(payload ?? {});
       const roomId = pRoomId || socket.data.currentRoomId;
+      const durationSec = pDurationSec || 90; 
+        // Pas de roomId dans le payload ni dans le socket : erreur
       if (!roomId) return ack?.({ ok: false, error: "NO_ROOM" });
 
       const room = await gameRedis.getRoom(roomId);
@@ -88,8 +90,9 @@ function registerGameHandlers(io, socket) {
 
       const now = Date.now();
       const choosingEndsAt = now + 6_000;
-      const endsAt = now + 6_000 + 90_000;
+      const endsAt = now + 6_000 + durationSec * 1000;
 
+    //Statut de la room fini
       await gameRedis.setRoomStatus(roomId, "IN_GAME");
       await gameRedis.setRoomChoosingEndsAt(roomId, choosingEndsAt);
       await gameRedis.setRoomEndsAt(roomId, endsAt);
