@@ -27,7 +27,7 @@ body, html {
 
 .game-card {
   background-color: #fbd000;
-  padding: 2.5rem;                 /* un peu moins gros */
+  padding: 2.5rem;
   border: 4px solid #000;
   box-shadow: 8px 8px 0px #000;
   border-radius: 4px;
@@ -39,19 +39,17 @@ body, html {
 .game-title {
   color: #e52521;
   text-shadow: 2px 2px 0px #000;
-  margin-bottom: 1.6rem;           /* mieux */
+  margin-bottom: 1.6rem;
   font-size: 1.5rem;
   line-height: 1.5;
 }
 
-/* ✅ Gestion propre des espaces */
 .game-form {
   display: flex;
   flex-direction: column;
-  gap: 18px;                        /* espace constant entre blocs */
+  gap: 18px;
 }
 
-/* Inputs */
 .retro-input {
   width: 100%;
   padding: 15px;
@@ -62,7 +60,7 @@ body, html {
   box-sizing: border-box;
   outline: none;
   color: #000;
-  margin: 0;                        /* IMPORTANT: on laisse le gap gérer */
+  margin: 0;
   transition: background-color 0.12s, transform 0.08s, box-shadow 0.12s, border-color 0.12s;
 }
 
@@ -74,18 +72,6 @@ body, html {
   transform: translate(-1px, -1px);
 }
 
-/* Row ROOM ID + GO */
-.input-group {
-  display: flex;
-  gap: 12px;
-  align-items: stretch;            /* ✅ même hauteur */
-}
-
-.input-group .retro-input {
-  flex: 1;
-}
-
-/* Bouton rouge CREATE ROOM */
 .retro-btn {
   background-color: #e52521;
   color: #fff;
@@ -97,32 +83,13 @@ body, html {
   box-shadow: 4px 4px 0px #000;
   transition: transform 0.1s, box-shadow 0.1s, filter 0.12s;
   width: 100%;
-  margin: 0;                        /* IMPORTANT: gap gère */
-  border-radius: 14px;              /* ✅ plus “clean” */
-}
-
-/* ✅ GO jaune (au lieu de vert) */
-.retro-btn-go {
-  background-color: #00a000; /* Vert Luigi */
-  color: #fff;
-  border: 4px solid #000;
-  font-family: 'Press Start 2P', cursive;
-  cursor: pointer;
-  box-shadow: 4px 4px 0px #000;
-  padding: 0 18px;
-  font-size: 0.8rem;
-  min-width: 96px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.1s, box-shadow 0.1s, filter 0.12s;
+  margin: 0;
   border-radius: 14px;
 }
 
-/* ✅ RESEARCH ROOM jaune (différent du rouge) */
 .retro-btn-search {
-  background-color: #ffe06a;
-  color: #000;
+  background-color: #00a000;
+  color: #ffffff;
   border: 4px solid #000;
   padding: 15px;
   font-family: 'Press Start 2P', cursive;
@@ -135,7 +102,6 @@ body, html {
   border-radius: 14px;
 }
 
-/* Focus visible boutons */
 .retro-btn:focus,
 .retro-btn:focus-visible,
 .retro-btn-go:focus,
@@ -147,7 +113,6 @@ body, html {
   filter: brightness(1.05);
 }
 
-/* Active (enfoncé) */
 .retro-btn:active,
 .retro-btn-go:active,
 .retro-btn-search:active {
