@@ -11,6 +11,11 @@ function emitRoomState(io, roomId) {
   })();
 }
 
+async function emitRoomList(io) {
+  const rooms = await getAllRooms();
+  io.emit("room:list:update", { rooms });
+}
+
 async function assignTeam(roomId, user) {
   const players = await gameRedis.getPlayers(roomId);
   const countA = players.filter((p) => p.team === "A").length;
@@ -41,6 +46,7 @@ function registerRoomHandlers(io, socket) {
       socket.data.currentRoomId = roomId;
 
       await emitRoomState(io, roomId);
+      await emitRoomList(io);
 
       ack?.({ ok: true, roomId, room });
     } catch (e) {
@@ -73,6 +79,7 @@ function registerRoomHandlers(io, socket) {
       socket.data.currentRoomId = roomId;
 
       await emitRoomState(io, roomId);
+      await emitRoomList(io);
 
       ack?.({ ok: true, roomId });
     } catch (e) {
@@ -104,6 +111,8 @@ function registerRoomHandlers(io, socket) {
         }
       }
 
+      await emitRoomList(io);
+
       ack?.({ ok: true });
     } catch (e) {
       ack?.({ ok: false, error: e.message || "LEAVE_ROOM_FAILED" });
@@ -130,6 +139,8 @@ function registerRoomHandlers(io, socket) {
         await emitRoomState(io, roomId);
       }
     }
+
+    await emitRoomList(io);
   });
 }
 
