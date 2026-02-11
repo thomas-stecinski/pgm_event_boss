@@ -130,11 +130,18 @@ function registerGameHandlers(io, socket) {
       }
       await gameRedis.setLastClickTs(roomId, socket.user.userId, now);
 
+      const newPersonalScore = await gameRedis.incrPlayerScore(roomId, socket.user.userId, 1);
       // incr score team
       await gameRedis.incrScore(roomId, player.team);
 
       // diffuse nouveau score à toute la room
       await emitScore(io, roomId);
+
+      socket.emit("game:personalScore:update", {
+            roomId,
+            userId: socket.user.userId,
+            personalScore: newPersonalScore,
+            });
 
       ack?.({ ok: true });
     } catch (e) {
