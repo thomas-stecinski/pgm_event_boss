@@ -103,11 +103,16 @@ function App() {
     });
   };
 
-  const handleStartGame = () => {
-    if(!socket || !roomData) return;
-    socket.emit("game:start", { roomId: roomData.room.roomId, durationSec: 90 }, (ack) => {
-        if(!ack.ok) alert("Erreur start: " + ack.error);
-    });
+  const handleStartGame = (durationSec) => {
+    if (!socket || !roomData) return;
+
+    socket.emit(
+      "game:start",
+      { roomId: roomData.room.roomId, durationSec },
+      (ack) => {
+        if (!ack?.ok) alert("Erreur start: " + (ack?.error || "GAME_START_FAILED"));
+      }
+    );
   };
 
   const handleLeave = () => {

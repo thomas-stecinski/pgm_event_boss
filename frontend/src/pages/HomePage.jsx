@@ -6,13 +6,19 @@ const LS_USERNAME_KEY = "scb_username";
 const HomePage = ({ onCreate, onGoRooms }) => {
   const [username, setUsername] = useState("");
 
-  // ✅ au chargement, on restaure le pseudo
+  // ✅ restaure pseudo ou met "Player" par défaut
   useEffect(() => {
     const saved = localStorage.getItem(LS_USERNAME_KEY);
-    if (saved) setUsername(saved);
+
+    if (saved && saved.trim()) {
+      setUsername(saved);
+    } else {
+      setUsername("Player");
+      localStorage.setItem(LS_USERNAME_KEY, "Player");
+    }
   }, []);
 
-  // ✅ à chaque changement, on sauvegarde
+  // ✅ sauvegarde automatique
   useEffect(() => {
     const clean = (username || "").trim();
     if (!clean) {
