@@ -277,12 +277,13 @@
   min-width: 30px;
 }
 
-.green-text {
-  color: #4cff4c;
+/* Couleurs par equipe */
+.mario-text {
+  color: #e52521;
 }
 
-.red-text {
-  color: #ff4c4c;
+.bowser-text {
+  color: #fbd000;
 }
 
 .lb-me-bold {
@@ -304,6 +305,27 @@
   align-items: center;
   color: #fff;
   gap: 20px;
+}
+
+/* Badge team dans l'overlay choosing */
+.choosing-team-badge {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 1rem;
+  padding: 8px 20px;
+  border: 3px solid #fff;
+  letter-spacing: 2px;
+}
+
+.badge-mario {
+  color: #fff;
+  background: #e52521;
+  box-shadow: 0 0 15px rgba(229, 37, 33, 0.6);
+}
+
+.badge-bowser {
+  color: #000;
+  background: #fbd000;
+  box-shadow: 0 0 15px rgba(251, 208, 0, 0.6);
 }
 
 .cards-container {
@@ -376,12 +398,88 @@
   animation: shrink 6s linear forwards;
 }
 
-.winner-announce {
-  font-size: 1.8rem;
-  color: #fbd000;
+/* --- GAME OVER --- */
+.end-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 2.5rem;
   text-shadow: 4px 4px #000;
+}
+
+.winner-title {
+  color: #4cff4c;
+}
+
+.loser-title {
+  color: #ff4c4c;
+}
+
+.draw-title {
+  color: #fbd000;
+}
+
+.winner-announce {
+  font-size: 1rem;
+  color: #ccc;
+  text-shadow: 2px 2px #000;
   text-align: center;
-  line-height: 1.5;
+}
+
+.final-scores {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.8rem;
+  display: flex;
+  gap: 30px;
+}
+
+/* --- LEADERBOARD GAME OVER --- */
+.end-leaderboard {
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid #fff;
+  padding: 10px 15px;
+  max-width: 320px;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.end-lb-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.55rem;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 8px;
+  letter-spacing: 2px;
+}
+
+.end-lb-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 0;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-family: 'Press Start 2P', cursive;
+}
+
+.end-lb-rank {
+  color: #888;
+  font-size: 0.4rem;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.end-lb-name {
+  font-size: 0.45rem;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.end-lb-score {
+  font-size: 0.5rem;
+  flex-shrink: 0;
+  text-align: right;
+  min-width: 30px;
 }
 
 /* ============================================
@@ -418,13 +516,13 @@
   animation: floatUpSmall 0.5s ease-out forwards;
 }
 
-.click-feedback.ally-click {
-  color: #4cff4c;
+.click-feedback.mario-click {
+  color: #e52521;
   text-shadow: 1px 1px 0 #000;
 }
 
-.click-feedback.enemy-click {
-  color: #ff4c4c;
+.click-feedback.bowser-click {
+  color: #fbd000;
   text-shadow: 1px 1px 0 #000;
 }
 

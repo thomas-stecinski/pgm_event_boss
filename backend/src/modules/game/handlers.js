@@ -117,10 +117,14 @@ function registerGameHandlers(io, socket) {
         durationMs: 90_000,
       });
 
-      // Envoie les offres personnelles a chaque socket de la room
+      // Envoie les offres personnelles + la team a chaque socket de la room
       const sockets = await io.in(roomId).fetchSockets();
       for (const s of sockets) {
+        const player = await gameRedis.getPlayer(roomId, s.user.userId);
         const offers = await gameRedis.getPlayerOffers(roomId, s.user.userId);
+        if (player) {
+          s.emit("game:myTeam", { roomId, team: player.team });
+        }
         if (offers) {
           s.emit("game:offers", { roomId, offers });
         }
