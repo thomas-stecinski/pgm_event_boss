@@ -1,67 +1,51 @@
 import { useEffect, useState } from "react";
 import "./HomePage.css";
 import "./RoomPage.css";
-import { useGameSession } from "../context/GameSession";
 
-const LS_USERNAME_KEY = "scb_username";
-
-const RoomPage = ({ onBack, onJoined }) => {
-  const { socket, listRooms, joinRoom } = useGameSession();
-
+// On enlève useGameSession car on reçoit tout via les props maintenant
+const RoomPage = ({ socket, onBack, onJoin }) => {
   const [rooms, setRooms] = useState([]);
-  const [roomId, setRoomId] = useState("");
-  const [loadingList, setLoadingList] = useState(false);
-  const [joining, setJoining] = useState(false);
+  const [roomIdInput, setRoomIdInput] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const fetchRooms = async () => {
-    try {
-      setLoadingList(true);
-      setError("");
-      const list = await listRooms({ onlyWaiting: true });
-      setRooms(list);
-    } catch (e) {
-      setRooms([]);
-      setError(e?.message || "LIST_ROOMS_FAILED");
-    } finally {
-      setLoadingList(false);
-    }
+  // Fonction pour lister les rooms via le socket
+  const fetchRooms = () => {
+    if (!socket) return;
+    setLoading(true);
+    setError("");
+
+    // On utilise le socket passé en props
+    socket.emit("room:list", { onlyWaiting: true }, (ack) => {
+      setLoading(false);
+      if (ack.ok) {
+        // Trie les rooms par date (récent en haut)
+        const sorted = (ack.rooms || []).sort((a, b) => b.createdAt - a.createdAt);
+        setRooms(sorted);
+      } else {
+        setError(ack.error || "Erreur chargement rooms");
+      }
+    });
   };
 
+  // Charger la liste à l'arrivée
   useEffect(() => {
-    if (!socket) return;
-
+    fetchRooms();
+    
+    // Optionnel : rafraichir si le socket se reconnecte
     const onConnect = () => fetchRooms();
-    if (socket.connected) fetchRooms();
-
-    socket.on("connect", onConnect);
-    return () => socket.off("connect", onConnect);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    socket?.on("connect", onConnect);
+    return () => socket?.off("connect", onConnect);
   }, [socket]);
 
-  const handleJoin = async (rid) => {
-    const clean = (rid ?? roomId).trim();
-    if (!clean) return alert("Entre un ROOM ID !");
-
-    try {
-      setJoining(true);
-      setError("");
-      await joinRoom(clean);
-      onJoined?.();
-    } catch (e) {
-      setError(e?.message || "JOIN_ROOM_FAILED");
-    } finally {
-      setJoining(false);
-    }
+  const handleJoinClick = (rid) => {
+    // Si on clique sur "GO" (input) ou "JOIN" (liste)
+    const finalId = rid || roomIdInput;
+    if (!finalId.trim()) return alert("Room ID vide");
+    
+    // On appelle la fonction du parent (App.jsx)
+    onJoin?.(finalId);
   };
-
-  const handleBack = () => {
-    const existing = localStorage.getItem(LS_USERNAME_KEY);
-    if (!existing) localStorage.setItem(LS_USERNAME_KEY, "");
-    onBack?.();
-  };
-
-  const canClick = !!socket?.connected && !joining;
 
   return (
     <div className="game-container">
@@ -70,29 +54,27 @@ const RoomPage = ({ onBack, onJoined }) => {
           RESEARCH<br />ROOMS
         </h1>
 
-        {/* ✅ Grille 2 colonnes (input + bouton) */}
         <div className="room-grid room-joinbox">
           <input
             type="text"
             className="retro-input"
             placeholder="ROOM ID (ex: Xk29aB)"
-            value={roomId}
-            onChange={(e) => setRoomId(e.target.value)}
+            value={roomIdInput}
+            onChange={(e) => setRoomIdInput(e.target.value)}
           />
           <button
             type="button"
             className="retro-btn-go"
-            onClick={() => handleJoin()}
-            disabled={!canClick}
+            onClick={() => handleJoinClick(roomIdInput)}
           >
-            {joining ? "..." : "GO"}
+            GO
           </button>
         </div>
 
-        {error ? <div className="room-error">{error}</div> : null}
+        {error && <div className="room-error">{error}</div>}
 
         <div className="room-list">
-          {loadingList ? (
+          {loading ? (
             <div className="room-empty">LOADING...</div>
           ) : rooms.length === 0 ? (
             <div className="room-empty">NO WAITING ROOMS</div>
@@ -102,7 +84,7 @@ const RoomPage = ({ onBack, onJoined }) => {
                 <div className="room-info">
                   <div className="room-id">#{r.roomId}</div>
                   <div className="room-sub">
-                    <span className="room-chip">{r.playersCount ?? 0} PLAYER(S)</span>
+                    <span className="room-chip">{r.playersCount}/2</span>
                     <span className="room-chip">WAITING</span>
                   </div>
                 </div>
@@ -110,8 +92,7 @@ const RoomPage = ({ onBack, onJoined }) => {
                 <button
                   type="button"
                   className="retro-btn-go"
-                  onClick={() => handleJoin(r.roomId)}
-                  disabled={!canClick}
+                  onClick={() => handleJoinClick(r.roomId)}
                 >
                   JOIN
                 </button>
@@ -120,9 +101,8 @@ const RoomPage = ({ onBack, onJoined }) => {
           )}
         </div>
 
-        {/* ✅ Footer sur la MÊME grille */}
         <div className="room-grid room-footer">
-          <button type="button" className="retro-btn room-back" onClick={handleBack}>
+          <button type="button" className="retro-btn room-back" onClick={onBack}>
             BACK
           </button>
 
@@ -130,9 +110,9 @@ const RoomPage = ({ onBack, onJoined }) => {
             type="button"
             className="retro-btn-search room-refresh"
             onClick={fetchRooms}
-            disabled={loadingList}
+            disabled={loading}
           >
-            {loadingList ? "..." : "REFRESH"}
+            {loading ? "..." : "REFRESH"}
           </button>
         </div>
       </div>
