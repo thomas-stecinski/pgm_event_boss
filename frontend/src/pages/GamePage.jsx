@@ -36,7 +36,7 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
   const [connectionError, setConnectionError] = useState(null);
 
   // Determiner ma team
- const [myTeam, setMyTeam] = useState(null);
+  const [myTeam, setMyTeam] = useState(null);
 
   const createOtherPlayerClickEffect = (damage, team) => {
     const el = document.createElement("div");
@@ -51,109 +51,128 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
     setTimeout(() => el.remove(), 500);
   };
 
-  // Synchronisation des offres (Props -> State)
+ // 1. Synchronisation des offres initiales (Props -> State)
   useEffect(() => {
     if (initialOffers && initialOffers.length > 0) {
       setOffers(initialOffers);
     }
   }, [initialOffers]);
 
+  // 2. CORRECTION CRITIQUE : Initialisation de l'équipe depuis roomData
+  // On n'attend pas le socket, on regarde tout de suite si on est déjà dans la liste des joueurs
   useEffect(() => {
-  if (!socket) {
-    setConnectionError("Socket non initialisé.");
-    return;
-  }
-
-  const handleMyTeam = (data) => {
-    setMyTeam(data.team);
-  };
-
-  const handleOffers = (data) => {
-    setOffers(data.offers || []);
-  };
-
-  const handlePlay = () => {
-    setPhase("PLAYING");
-  };
-
-  const handleTimer = (data) => {
-    setTimer(data.timeLeftMs);
-    if (data.phase) {
-      setPhase(data.phase);
-    }
-  };
-
-  const handleScoreUpdate = (d) => {
-    setScores(d.scores);
-  };
-
-  const handlePersonalScore = (d) => {
-    setPersonalScore(d.personalScore);
-  };
-
-  const handlePlayerClick = (d) => {
-    setPlayerScores(prev => ({
-      ...prev,
-      [d.userId]: {
-        name: d.name,
-        team: d.team,
-        personalScore: d.personalScore,
-        clickCount: d.clickCount,
+    if (roomData && roomData.players && currentUser) {
+      const me = roomData.players.find((p) => p.userId === currentUser.userId);
+      if (me && me.team) {
+        setMyTeam(me.team);
       }
-    }));
-
-    if (d.userId !== currentUser?.userId) {
-      createOtherPlayerClickEffect(d.damage, d.team);
     }
-  };
+  }, [roomData, currentUser]);
 
-  const handleGameEnd = (d) => {
-    setPhase("ENDED");
-    setResult({ winner: d.winner, finalScores: d.scores });
-  };
+  // 3. Gestion des événements Socket
+  useEffect(() => {
+    if (!socket) {
+      setConnectionError("Socket non initialisé.");
+      return;
+    }
 
-  const handleDisconnect = (reason) => {
-    let msg = "Connexion perdue...";
-    if (reason === "io server disconnect") msg = "Le serveur a fermé la connexion.";
-    if (reason === "transport close") msg = "Le serveur ne répond plus.";
-    setConnectionError(msg);
-  };
+    const handleMyTeam = (data) => {
+      console.log("Team received via socket:", data.team); // Debug
+      setMyTeam(data.team);
+    };
 
-  const handleConnectError = () => {
-    setConnectionError("Impossible de rejoindre le serveur.");
-  };
+    const handleOffers = (data) => {
+      setOffers(data.offers || []);
+    };
 
-  const handleConnect = () => {
-    setConnectionError(null);
-  };
+    const handlePlay = () => {
+      setPhase("PLAYING");
+    };
 
-  socket.on("game:myTeam", handleMyTeam);
-  socket.on("game:offers", handleOffers);
-  socket.on("game:play", handlePlay);
-  socket.on("game:timer", handleTimer);
-  socket.on("game:score:update", handleScoreUpdate);
-  socket.on("game:personalScore:update", handlePersonalScore);
-  socket.on("game:playerClick", handlePlayerClick);
-  socket.on("game:end", handleGameEnd);
-  socket.on("disconnect", handleDisconnect);
-  socket.on("connect_error", handleConnectError);
-  socket.on("connect", handleConnect);
+    const handleTimer = (data) => {
+      setTimer(data.timeLeftMs);
+      if (data.phase) {
+        setPhase(data.phase);
+      }
+    };
 
-  return () => {
-    socket.off("game:myTeam", handleMyTeam);
-    socket.off("game:offers", handleOffers);
-    socket.off("game:play", handlePlay);
-    socket.off("game:timer", handleTimer);
-    socket.off("game:score:update", handleScoreUpdate);
-    socket.off("game:personalScore:update", handlePersonalScore);
-    socket.off("game:playerClick", handlePlayerClick);
-    socket.off("game:end", handleGameEnd);
-    socket.off("disconnect", handleDisconnect);
-    socket.off("connect_error", handleConnectError);
-    socket.off("connect", handleConnect);
-  };
+    const handleScoreUpdate = (d) => {
+      setScores(d.scores);
+    };
 
-}, [socket, currentUser?.userId]);
+    const handlePersonalScore = (d) => {
+      setPersonalScore(d.personalScore);
+    };
+
+    const handlePlayerClick = (d) => {
+      setPlayerScores((prev) => ({
+        ...prev,
+        [d.userId]: {
+          name: d.name,
+          team: d.team,
+          personalScore: d.personalScore,
+          clickCount: d.clickCount,
+        },
+      }));
+
+      // Effet visuel pour les autres joueurs
+      if (d.userId !== currentUser?.userId) {
+        createOtherPlayerClickEffect(d.damage, d.team);
+      }
+    };
+
+    const handleGameEnd = (d) => {
+      setPhase("ENDED");
+      setResult({ winner: d.winner, finalScores: d.scores });
+    };
+
+    const handleDisconnect = (reason) => {
+      let msg = "Connexion perdue...";
+      if (reason === "io server disconnect") msg = "Le serveur a fermé la connexion.";
+      if (reason === "transport close") msg = "Le serveur ne répond plus.";
+      setConnectionError(msg);
+    };
+
+    const handleConnectError = () => {
+      setConnectionError("Impossible de rejoindre le serveur.");
+    };
+
+    const handleConnect = () => {
+      setConnectionError(null);
+      // Au cas où on se reconnecte, on redemande notre team si on l'a perdue
+      if (!myTeam && currentUser) {
+          // Optionnel : on pourrait émettre un event pour redemander l'état
+      }
+    };
+
+    // --- Abonnements ---
+    socket.on("game:myTeam", handleMyTeam);
+    socket.on("game:offers", handleOffers);
+    socket.on("game:play", handlePlay);
+    socket.on("game:timer", handleTimer);
+    socket.on("game:score:update", handleScoreUpdate);
+    socket.on("game:personalScore:update", handlePersonalScore);
+    socket.on("game:playerClick", handlePlayerClick);
+    socket.on("game:end", handleGameEnd);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("connect_error", handleConnectError);
+    socket.on("connect", handleConnect);
+
+    // --- Nettoyage ---
+    return () => {
+      socket.off("game:myTeam", handleMyTeam);
+      socket.off("game:offers", handleOffers);
+      socket.off("game:play", handlePlay);
+      socket.off("game:timer", handleTimer);
+      socket.off("game:score:update", handleScoreUpdate);
+      socket.off("game:personalScore:update", handlePersonalScore);
+      socket.off("game:playerClick", handlePlayerClick);
+      socket.off("game:end", handleGameEnd);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("connect_error", handleConnectError);
+      socket.off("connect", handleConnect);
+    };
+  }, [socket, currentUser?.userId, myTeam]); // Ajout de myTeam dans les deps pour la logique de reconnexion éventuelle
 
   const handleChoosePower = (powerId) => {
     if (connectionError) return;
