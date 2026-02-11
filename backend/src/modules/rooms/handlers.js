@@ -47,6 +47,17 @@ function registerRoomHandlers(io, socket) {
       ack?.({ ok: false, error: e.message || "CREATE_ROOM_FAILED" });
     }
   });
+    socket.on("room:list", async (payload, ack) => {
+    try {
+      const { onlyWaiting } = payload ?? {};
+      const rooms = await getAllRooms({ onlyWaiting });
+
+      ack?.({ ok: true, rooms });
+    } catch (e) {
+      ack?.({ ok: false, error: "LIST_ROOMS_FAILED" });
+    }
+  });
+
 
   socket.on("room:join", async (payload, ack) => {
     try {
@@ -87,9 +98,15 @@ function registerRoomHandlers(io, socket) {
 
   socket.on("disconnect", async () => {
     const roomId = socket.data.currentRoomId;
+    const players = await getPlayers(roomId);
     if (!roomId) return;
     await removePlayer(roomId, socket.user.userId);
     await emitRoomState(io, roomId);
+
+    if (players.length === 0) {
+      await deleteRoom(roomId);
+    }
+
   });
 }
 
