@@ -6,39 +6,46 @@ const LS_USERNAME_KEY = "scb_username";
 const HomePage = ({ onCreate, onGoRooms }) => {
   const [username, setUsername] = useState("");
 
-  // ✅ restaure pseudo ou met "Player" par défaut
+  // ✅ restaure le dernier pseudo si présent
   useEffect(() => {
     const saved = localStorage.getItem(LS_USERNAME_KEY);
-
     if (saved && saved.trim()) {
       setUsername(saved);
-    } else {
-      setUsername("Player");
-      localStorage.setItem(LS_USERNAME_KEY, "Player");
     }
   }, []);
 
-  // ✅ sauvegarde automatique
+  // ✅ sauvegarde automatique du dernier pseudo
   useEffect(() => {
     const clean = (username || "").trim();
-    if (!clean) {
-      localStorage.removeItem(LS_USERNAME_KEY);
-    } else {
+
+    if (clean) {
       localStorage.setItem(LS_USERNAME_KEY, clean);
+    } else {
+      localStorage.removeItem(LS_USERNAME_KEY);
     }
   }, [username]);
 
   const handleCreateClick = (e) => {
     e.preventDefault();
+
     const name = username.trim();
-    if (!name) return alert("Il faut un pseudo !");
+    if (!name) {
+      alert("Entre un pseudo !");
+      return;
+    }
+
     onCreate?.(name);
   };
 
   const handleResearchClick = (e) => {
     e.preventDefault();
+
     const name = username.trim();
-    if (!name) return alert("Il faut un pseudo !");
+    if (!name) {
+      alert("Entre un pseudo !");
+      return;
+    }
+
     onGoRooms?.(name);
   };
 
@@ -57,7 +64,6 @@ const HomePage = ({ onCreate, onGoRooms }) => {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             maxLength={12}
-            required
           />
 
           <button type="button" onClick={handleCreateClick} className="retro-btn">
