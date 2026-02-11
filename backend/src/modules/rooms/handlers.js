@@ -39,11 +39,12 @@ function registerRoomHandlers(io, socket) {
         roomId,
         hostUser: socket.user,
       });
-      await assignTeam(roomId, socket.user);
+      const team = await assignTeam(roomId, socket.user);
 
 
       await socket.join(roomId);
       socket.data.currentRoomId = roomId;
+      socket.emit("game:myTeam", { team });
 
       await emitRoomState(io, roomId);
       await emitRoomList(io);
@@ -73,10 +74,12 @@ function registerRoomHandlers(io, socket) {
       if (!room) return ack?.({ ok: false, error: "ROOM_NOT_FOUND" });
 
       await addPlayer(roomId, socket.user);
-      await assignTeam(roomId, socket.user);
+      const team = await assignTeam(roomId, socket.user);
 
       await socket.join(roomId);
       socket.data.currentRoomId = roomId;
+
+      socket.emit("game:myTeam", { team });
 
       await emitRoomState(io, roomId);
       await emitRoomList(io);
