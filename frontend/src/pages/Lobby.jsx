@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './Lobby.css';
 
-const Lobby = ({ roomData, currentUserId, onLeave }) => {
+const Lobby = ({ roomData, currentUserId, onLeave, onStart }) => {
   const { room, players } = roomData;
   const isHost = room.hostUserId === currentUserId;
 
@@ -60,7 +60,7 @@ const Lobby = ({ roomData, currentUserId, onLeave }) => {
 
         <div className="actions">
           {isHost && (
-            <button className="retro-btn start-btn" disabled={players.length < 2}>
+            <button className="retro-btn start-btn" disabled={players.length < 2} onClick={onStart}>
               START GAME
             </button>
           )}

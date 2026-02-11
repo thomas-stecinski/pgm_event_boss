@@ -1,93 +1,177 @@
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import HomePage from "./pages/HomePage";
-import RoomPage from "./pages/RoomPage";
-import Lobby from "./pages/Lobby";
-import { GameSessionProvider, useGameSession } from "./context/GameSession";
+import { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
+import HomePage from './pages/HomePage'; 
+import Lobby from './pages/Lobby'; 
+import GamePage from './pages/GamePage';
+import RoomPage from './pages/RoomPage'; // ✅ Import
 
-function NetBadge() {
-  const { isConnected } = useGameSession();
+const BACKEND_URL = "http://localhost:3001";
+
+function App() {
+  const [socket, setSocket] = useState(null);
+  const [isConnected, setIsConnected] = useState(false); 
+  const [roomData, setRoomData] = useState(null);
+  const [user, setUser] = useState(null);
+  
+  // Vues possibles: 'HOME', 'ROOMS', 'LOBBY', 'GAME'
+  const [currentView, setCurrentView] = useState('HOME');
+
+  const [gameOffers, setGameOffers] = useState([]);
+
+  useEffect(() => {
+    return () => {
+      if (socket) socket.disconnect();
+    };
+  }, [socket]);
+
+  // Authentification HTTP
+  const authenticateUser = async (name) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/auth/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (!response.ok) throw new Error("Erreur auth");
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      alert("Erreur d'authentification");
+      return null;
+    }
+  };
+
+  // Initialisation Socket
+  const initSocket = (userData) => {
+    if (socket) return socket;
+
+    const newSocket = io(BACKEND_URL, {
+      auth: { token: userData.token }
+    });
+
+    newSocket.on("connect", () => setIsConnected(true));
+    newSocket.on("disconnect", () => setIsConnected(false));
+    
+    // Si on rejoint une room via la liste ou création
+    newSocket.on("room:update", (data) => {
+      setRoomData(data);
+      if (currentView !== 'GAME') setCurrentView('LOBBY');
+    });
+
+    // Si le jeu commence
+    newSocket.on("game:choosing", () => {
+      setCurrentView('GAME');
+    });
+
+    newSocket.on("game:offers", (data) => {
+      console.log("Offres reçues dans App:", data.offers);
+      setGameOffers(data.offers || []);
+    });
+
+    setSocket(newSocket);
+    return newSocket;
+  };
+
+  // --- HANDLERS ---
+
+  const handleCreate = async (username) => {
+    const userData = await authenticateUser(username);
+    if (!userData) return;
+    setUser(userData);
+    const s = initSocket(userData);
+    s.emit("room:create");
+  };
+
+  // ✅ NOUVEAU : Gère le clic sur "RESEARCH ROOM"
+  const handleGoToRooms = async (username) => {
+    const userData = await authenticateUser(username);
+    if (!userData) return;
+    setUser(userData);
+    
+    // On connecte le socket pour pouvoir lister les rooms
+    const s = initSocket(userData);
+    
+    // On change la vue une fois connecté (ou presque)
+    setCurrentView('ROOMS');
+  };
+
+  // ✅ Modifié : Gère le "JOIN" depuis la RoomPage
+  const handleJoinRoomId = (roomId) => {
+    if (!socket) return;
+    socket.emit("room:join", { roomId }, (ack) => {
+      if (!ack.ok) alert("Impossible de rejoindre : " + ack.error);
+    });
+  };
+
+  const handleStartGame = () => {
+    if(!socket || !roomData) return;
+    socket.emit("game:start", { roomId: roomData.room.roomId, durationSec: 90 }, (ack) => {
+        if(!ack.ok) alert("Erreur start: " + ack.error);
+    });
+  };
+
+  const handleLeave = () => {
+    if (socket) {
+      socket.emit("room:leave");
+      socket.disconnect(); 
+    }
+    setRoomData(null);
+    setSocket(null);
+    setIsConnected(false);
+    setCurrentView('HOME');
+  };
+
+  const handleBackToHome = () => {
+    // Si on quitte la page Rooms sans se déconnecter, on garde le socket ouvert ou on le ferme, au choix.
+    // Ici je déconnecte pour revenir à l'état initial clean.
+    handleLeave();
+  };
+
+  // --- RENDER ---
+
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 10,
-        right: 10,
-        padding: "5px 10px",
-        background: "#000",
-        color: "#fff",
-        fontFamily: "monospace",
-        fontSize: "10px",
-        zIndex: 9999,
-      }}
-    >
-      NET:{" "}
-      <span style={{ color: isConnected ? "#0f0" : "#f00" }}>
-        {isConnected ? "ONLINE" : "OFFLINE"}
-      </span>
+    <div>
+      <div style={{ position: 'fixed', bottom: 10, right: 10, zIndex: 9999, color: '#fff' }}>
+        NET: <span style={{ color: isConnected ? '#0f0' : '#f00' }}>{isConnected ? 'ON' : 'OFF'}</span>
+      </div>
+
+      {currentView === 'HOME' && (
+        <HomePage 
+            onCreate={handleCreate} 
+            onGoRooms={handleGoToRooms} // ✅ Connecté ici
+        />
+      )}
+
+      {/* ✅ NOUVELLE VUE : ROOMS */}
+      {currentView === 'ROOMS' && (
+        <RoomPage 
+            socket={socket}
+            onBack={handleBackToHome}
+            onJoin={handleJoinRoomId}
+        />
+      )}
+
+      {currentView === 'LOBBY' && roomData && (
+        <Lobby 
+          roomData={roomData} 
+          currentUserId={user?.userId} 
+          onLeave={handleLeave}
+          onStart={handleStartGame} 
+        />
+      )}
+
+      {currentView === 'GAME' && (
+        <GamePage 
+            socket={socket} 
+            roomData={roomData} 
+            currentUser={user}
+            initialOffers={gameOffers}
+            onBack={handleLeave}
+        />
+      )}
     </div>
   );
 }
 
-function HomeRoute() {
-  const navigate = useNavigate();
-  const { createRoom, ensureConnected } = useGameSession();
+export default App;
 
-  const onCreate = async (username) => {
-    try {
-      await createRoom(username);
-      navigate("/lobby");
-    } catch (e) {
-      alert(`Create: ${e.message}`);
-    }
-  };
-
-  const onGoRooms = async (username) => {
-    try {
-      await ensureConnected(username);
-      navigate("/rooms");
-    } catch (e) {
-      alert(`Rooms: ${e.message}`);
-    }
-  };
-
-  return <HomePage onCreate={onCreate} onGoRooms={onGoRooms} />;
-}
-
-function RoomsRoute() {
-  const navigate = useNavigate();
-  const { user } = useGameSession();
-
-  if (!user) return <Navigate to="/" replace />;
-
-  return <RoomPage onBack={() => navigate("/")} onJoined={() => navigate("/lobby")} />;
-}
-
-function LobbyRoute() {
-  const navigate = useNavigate();
-  const { roomData, user, leaveRoom } = useGameSession();
-
-  if (!roomData) return <Navigate to="/" replace />;
-
-  const onLeave = async () => {
-    await leaveRoom();
-    navigate("/", { replace: true });
-  };
-
-  return <Lobby roomData={roomData} currentUserId={user?.userId} onLeave={onLeave} />;
-}
-
-export default function App() {
-  return (
-    <GameSessionProvider>
-      <BrowserRouter>
-        <NetBadge />
-        <Routes>
-          <Route path="/" element={<HomeRoute />} />
-          <Route path="/rooms" element={<RoomsRoute />} />
-          <Route path="/lobby" element={<LobbyRoute />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </GameSessionProvider>
-  );
-}
