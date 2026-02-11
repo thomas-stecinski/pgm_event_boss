@@ -243,7 +243,17 @@ function registerGameHandlers(io, socket) {
         personalScore: newPersonalScore,
       });
 
-      ack?.({ ok: true, damage });
+      // Broadcast le clic a toute la room (pour afficher allies/ennemis)
+      io.to(roomId).emit("game:playerClick", {
+        userId: socket.user.userId,
+        name: socket.user.name,
+        team: player.team,
+        damage,
+        personalScore: newPersonalScore,
+        clickCount,
+      });
+
+      ack?.({ ok: true, damage, powerId, clickCount });
     } catch (e) {
       ack?.({ ok: false, error: e?.message || "GAME_CLICK_FAILED" });
     }
