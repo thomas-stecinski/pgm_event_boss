@@ -2,55 +2,90 @@
 
 .game-page {
   position: relative;
-  /* Curseur pointeur pour indiquer qu'on peut cliquer partout */
   cursor: crosshair;
   overflow: hidden;
   user-select: none;
 }
 
-/* --- HUD TOP (Barre de vie / Score) --- */
+/* ============================================
+   HUD TOP : 2 lignes
+   Ligne 1 = scores + barre de progression
+   Ligne 2 = timer centre
+   ============================================ */
 .hud-top {
   position: absolute;
-  top: 20px;
+  top: 10px;
   left: 0;
   width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
   z-index: 10;
-  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0 15px;
   box-sizing: border-box;
 }
 
+.hud-row-1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.hud-row-2 {
+  display: flex;
+  justify-content: center;
+}
+
+/* --- SCORE BOX --- */
 .score-box {
   background: #000;
   color: #fff;
-  border: 4px solid #fff;
-  padding: 10px;
-  min-width: 100px;
+  border: 3px solid #fff;
+  padding: 6px 10px;
+  min-width: 80px;
   text-align: center;
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.8rem;
+  font-size: 0.65rem;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
+  flex-shrink: 0;
 }
 
 .score-val {
   color: #fbd000;
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
+.team-label {
+  font-size: 0.4rem;
+  letter-spacing: 1px;
+  margin-top: 1px;
+}
+
+.team-label.your-team {
+  color: #4cff4c;
+  text-shadow: 0 0 5px rgba(76, 255, 76, 0.5);
+}
+
+.team-label.challenger {
+  color: #ff4c4c;
+  text-shadow: 0 0 5px rgba(255, 76, 76, 0.5);
+}
+
+/* --- PROGRESS BAR --- */
 .progress-container {
   flex: 1;
-  height: 40px;
-  border: 4px solid #000;
+  height: 30px;
+  border: 3px solid #000;
   background: #333;
   position: relative;
   display: flex;
-  box-shadow: 4px 4px 0px rgba(0,0,0,0.5);
-  max-width: 800px;
+  box-shadow: 3px 3px 0px rgba(0,0,0,0.5);
+  min-width: 100px;
 }
 
 .progress-bar-fill {
@@ -58,15 +93,14 @@
   transition: width 0.3s ease-out;
 }
 
-.team-a-bg { background-color: #e52521; } /* Rouge Mario */
-.team-b-bg { background-color: #fbd000; } /* Jaune/Orange Bowser */
+.team-a-bg { background-color: #e52521; }
+.team-b-bg { background-color: #fbd000; }
 
-/* La barre de séparation centrale mouvante */
 .progress-divider {
   position: absolute;
-  top: -5px;
-  bottom: -5px;
-  width: 6px;
+  top: -4px;
+  bottom: -4px;
+  width: 5px;
   background: #fff;
   border: 2px solid #000;
   transform: translateX(-50%);
@@ -74,67 +108,191 @@
   z-index: 2;
 }
 
+/* --- TIMER (ligne 2, centre) --- */
+.timer-box {
+  background: rgba(0, 0, 0, 0.8);
+  color: #e52521;
+  border: 2px solid #fff;
+  padding: 4px 16px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.7rem;
+  box-shadow: 2px 2px 0 #000;
+}
+
 /* --- PERSONNAGES --- */
 .char-img {
   position: absolute;
   bottom: 0;
-  width: 45vw;       /* Prend 45% de la largeur de l'écran */
-  max-width: 400px;  /* Ne devient pas géant sur desktop */
-  height: auto;      /* Garde les proportions */
-  max-height: 50vh;  /* Ne dépasse pas la moitié de la hauteur */
+  width: 45vw;
+  max-width: 400px;
+  height: auto;
+  max-height: 50vh;
   object-fit: contain;
-  pointer-events: none; /* Important : permet de cliquer "à travers" l'image */
+  pointer-events: none;
   z-index: 1;
 }
 
 .char-left {
   left: -5%;
-   /* transform: scaleX(-1); */
 }
 .char-right {
   right: -5%;
 }
 
-/* Effet quand on clique (les persos bougent un peu) */
-.game-page:active .char-left { transform: /*transform: scaleX(-1)*/ translateY(5px); }
+.game-page:active .char-left { transform: translateY(5px); }
 .game-page:active .char-right { transform: translateY(5px); }
 
-/* --- HUD CENTRE --- */
-.hud-center {
+/* ============================================
+   HUD GAUCHE : pouvoir + mes clics
+   ============================================ */
+.hud-left {
   position: absolute;
-  top: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
+  top: 120px;
+  left: 15px;
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  max-width: 200px;
 }
 
-.timer-box {
-  background: #fff;
-  border: 4px solid #000;
-  padding: 10px 20px;
-  font-size: 1rem;
-  box-shadow: 4px 4px 0 #000;
+.active-power-indicator {
+  background: rgba(0, 0, 0, 0.85);
+  border: 3px solid #fff;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 3px 3px 0 #000;
 }
 
-.timer-val {
-  font-size: 1.5rem;
-  color: #e52521;
-  margin-top: 5px;
+.power-img-sm {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
-.personal-score-box {
-  background: rgba(0, 0, 0, 0.7);
-  color: #fff;
-  padding: 10px;
+.power-info-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.power-label-sm {
+  color: #fbd000;
+  font-size: 0.5rem;
+  font-family: 'Press Start 2P', cursive;
+}
+
+.power-desc-sm {
+  color: #aaa;
+  font-size: 0.4rem;
+  font-family: sans-serif;
+  font-weight: bold;
+  margin-top: 2px;
+}
+
+/* ============================================
+   HUD DROITE : mini leaderboard
+   ============================================ */
+.hud-right {
+  position: absolute;
+  top: 120px;
+  right: 15px;
+  z-index: 10;
+  max-width: 220px;
+  width: 200px;
+}
+
+.leaderboard {
+  background: rgba(0, 0, 0, 0.8);
   border: 2px solid #fff;
-  font-size: 0.8rem;
+  box-shadow: 3px 3px 0 #000;
+  overflow: hidden;
 }
 
-/* --- OVERLAYS (CHOOSING & END) --- */
+/* Mon score en haut du leaderboard */
+.lb-my-score {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.lb-my-label {
+  color: #fbd000;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.45rem;
+}
+
+.lb-my-val {
+  color: #fff;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.7rem;
+}
+
+/* Liste des joueurs */
+.lb-list {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  gap: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lb-row-me {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lb-rank {
+  color: #888;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.4rem;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.lb-name {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.4rem;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lb-score {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.5rem;
+  flex-shrink: 0;
+  text-align: right;
+  min-width: 30px;
+}
+
+.green-text {
+  color: #4cff4c;
+}
+
+.red-text {
+  color: #ff4c4c;
+}
+
+.lb-me-bold {
+  font-weight: bold;
+  text-shadow: 0 0 4px currentColor;
+}
+
+/* ============================================
+   OVERLAYS (CHOOSING & END)
+   ============================================ */
 .overlay {
   position: absolute;
   top: 0; left: 0; width: 100%; height: 100%;
@@ -150,14 +308,14 @@
 
 .cards-container {
   display: flex;
-  gap: 20px;
+  gap: 15px;
   flex-wrap: wrap;
   justify-content: center;
 }
 
 .power-card {
-  width: 140px;
-  height: 180px;
+  width: 130px;
+  height: 170px;
   background: #fff;
   border: 4px solid #000;
   box-shadow: 6px 6px 0 #000;
@@ -177,32 +335,34 @@
 }
 
 .power-card.selected {
-  background: #fbd000; /* Jaune Mario */
-  border-color: #e52521; /* Rouge */
+  background: #fbd000;
+  border-color: #e52521;
   transform: translateY(4px);
   box-shadow: 2px 2px 0 #000;
 }
 
-.power-icon {
-  font-size: 3rem;
-  margin-bottom: 10px;
+.power-card-img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  margin-bottom: 8px;
 }
 
 .power-label {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: #e52521;
   margin-bottom: 5px;
 }
 
 .power-desc {
-  font-size: 0.5rem;
+  font-size: 0.45rem;
   color: #666;
   text-align: center;
 }
 
-/* Petite barre de chargement sous les cartes */
 .timer-bar-container {
   width: 80%;
+  max-width: 500px;
   height: 10px;
   border: 2px solid #fff;
   margin-top: 20px;
@@ -213,18 +373,20 @@
   height: 100%;
   background: #e52521;
   width: 100%;
-  animation: shrink 6s linear forwards; /* 6 secondes = temps du choosing */
+  animation: shrink 6s linear forwards;
 }
 
 .winner-announce {
-  font-size: 2rem;
+  font-size: 1.8rem;
   color: #fbd000;
   text-shadow: 4px 4px #000;
   text-align: center;
   line-height: 1.5;
 }
 
-/* Animation effet clic flottant */
+/* ============================================
+   CLICK FEEDBACK (floating damage)
+   ============================================ */
 .click-feedback {
   position: fixed;
   color: #fff;
@@ -232,116 +394,74 @@
   font-weight: bold;
   font-size: 1.2rem;
   pointer-events: none;
-  animation: floatUp 0.8s ease-out forwards;
-  z-index: 99;
-  text-shadow: 2px 2px 0 #000;
-}
-
-/* --- INDICATEUR POUVOIR PERMANENT --- */
-.active-power-indicator {
-  background: rgba(0, 0, 0, 0.85);
-  border: 4px solid #fff;
-  padding: 10px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 4px 4px 0 #000;
-  margin-bottom: 10px;
-  min-width: 220px;
-  text-align: left;
-}
-
-.power-icon-sm {
-  font-size: 2rem;
-  background: #fff;
-  border: 2px solid #000;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-}
-
-.power-info-col {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.power-label-sm {
-  color: #fbd000;
-  font-size: 0.75rem;
-  font-family: 'Press Start 2P', cursive;
-}
-
-.power-desc-sm {
-  color: #ccc;
-  font-size: 0.55rem;
-  font-family: sans-serif; /* Plus lisible pour la description */
-  font-weight: bold;
-}
-
-/* Ajustement pour l'animation click "POW!" */
-.click-feedback {
-  position: fixed;
-  color: #fff;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 1.5rem;
-  pointer-events: none;
   z-index: 999;
-  text-shadow: 3px 3px 0 #000;
+  text-shadow: 2px 2px 0 #000;
   animation: popUp 0.6s ease-out forwards;
 }
 
-/* --- ANIMATIONS --- */
-
-@keyframes floatUp {
-  0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-  100% { transform: translate(-50%, -150%) scale(1.5); opacity: 0; }
+.click-feedback.crit-effect {
+  color: #ff9a00;
+  font-size: 1.8rem;
+  text-shadow: 3px 3px 0 #000, 0 0 15px #ff9a00;
 }
 
-@keyframes shrink {
-  from { width: 100%; }
-  to { width: 0%; }
+.click-feedback.boom-effect {
+  color: #ff2222;
+  font-size: 2rem;
+  text-shadow: 3px 3px 0 #000, 0 0 20px #ff0000;
 }
 
-@keyframes popUp {
-  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
-  50% { transform: translate(-50%, -150%) scale(1.2); opacity: 1; }
-  100% { transform: translate(-50%, -200%) scale(1); opacity: 0; }
+/* Clics des autres joueurs (plus petit, colore) */
+.click-feedback.other-click {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  animation: floatUpSmall 0.5s ease-out forwards;
 }
 
-/* --- BOUTON QUIT (Exit) --- */
+.click-feedback.ally-click {
+  color: #4cff4c;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.click-feedback.enemy-click {
+  color: #ff4c4c;
+  text-shadow: 1px 1px 0 #000;
+}
+
+/* ============================================
+   BOUTON QUIT
+   ============================================ */
 .quit-btn {
   position: absolute;
-  top: 15px;
-  right: 15px;
-  background: #ff0000; /* Rouge vif */
+  top: 12px;
+  right: 12px;
+  background: #ff0000;
   color: #fff;
-  border: 4px solid #000;
-  padding: 8px 12px;
+  border: 3px solid #000;
+  padding: 6px 10px;
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   cursor: pointer;
-  z-index: 999; /* Au-dessus de tout */
-  box-shadow: 4px 4px 0px #000;
+  z-index: 999;
+  box-shadow: 3px 3px 0px #000;
   transition: transform 0.1s;
 }
 
 .quit-btn:active {
   transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0px #000;
+  box-shadow: 1px 1px 0px #000;
 }
 
 .quit-btn:hover {
   background: #e52521;
 }
 
-/* --- OVERLAY ERREUR --- */
+/* ============================================
+   OVERLAY ERREUR
+   ============================================ */
 .error-overlay {
-  background: rgba(50, 0, 0, 0.9) !important; /* Fond rouge sombre */
-  z-index: 2000 !important; /* Priorité absolue */
+  background: rgba(50, 0, 0, 0.9) !important;
+  z-index: 2000 !important;
 }
 
 .error-box {
@@ -381,6 +501,161 @@
   border-color: #e52521 !important;
 }
 
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 700px) {
+  .score-box {
+    min-width: 60px;
+    padding: 4px 6px;
+    font-size: 0.5rem;
+  }
+
+  .score-val {
+    font-size: 0.8rem;
+  }
+
+  .team-label {
+    font-size: 0.35rem;
+  }
+
+  .progress-container {
+    height: 22px;
+  }
+
+  .timer-box {
+    font-size: 0.55rem;
+    padding: 3px 10px;
+  }
+
+  .hud-left {
+    top: 105px;
+    left: 8px;
+    max-width: 140px;
+  }
+
+  .active-power-indicator {
+    padding: 4px 6px;
+    gap: 5px;
+  }
+
+  .power-icon-sm {
+    width: 24px;
+    height: 24px;
+    font-size: 1rem;
+  }
+
+  .power-label-sm {
+    font-size: 0.4rem;
+  }
+
+  .power-desc-sm {
+    font-size: 0.3rem;
+  }
+
+  .hud-right {
+    top: 105px;
+    right: 8px;
+    width: 150px;
+  }
+
+  .lb-my-label {
+    font-size: 0.35rem;
+  }
+
+  .lb-my-val {
+    font-size: 0.55rem;
+  }
+
+  .lb-name {
+    font-size: 0.3rem;
+  }
+
+  .lb-score {
+    font-size: 0.4rem;
+  }
+
+  .lb-rank {
+    font-size: 0.3rem;
+    width: 14px;
+  }
+
+  .power-card {
+    width: 100px;
+    height: 140px;
+  }
+
+  .power-card-img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .power-img-sm {
+    width: 28px;
+    height: 28px;
+  }
+
+  .power-label {
+    font-size: 0.5rem;
+  }
+
+  .power-desc {
+    font-size: 0.35rem;
+  }
+}
+
+@media (max-width: 450px) {
+  .hud-row-1 {
+    gap: 5px;
+  }
+
+  .score-box {
+    min-width: 50px;
+    padding: 3px 4px;
+    font-size: 0.4rem;
+    border-width: 2px;
+  }
+
+  .score-val {
+    font-size: 0.65rem;
+  }
+
+  .hud-left {
+    top: 95px;
+    left: 5px;
+    max-width: 110px;
+  }
+
+  .hud-right {
+    top: 95px;
+    right: 5px;
+    width: 120px;
+  }
+
+  .lb-list {
+    max-height: 180px;
+  }
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes shrink {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+@keyframes popUp {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+  50% { transform: translate(-50%, -150%) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -200%) scale(1); opacity: 0; }
+}
+
+@keyframes floatUpSmall {
+  0% { transform: translate(-50%, 0) scale(0.8); opacity: 0.7; }
+  100% { transform: translate(-50%, -40px) scale(1); opacity: 0; }
+}
+
 @keyframes shake {
   0% { transform: translate(1px, 1px) rotate(0deg); }
   10% { transform: translate(-1px, -2px) rotate(-1deg); }
@@ -393,4 +668,9 @@
   80% { transform: translate(-1px, -1px) rotate(1deg); }
   90% { transform: translate(1px, 2px) rotate(0deg); }
   100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
