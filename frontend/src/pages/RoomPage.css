@@ -1,0 +1,195 @@
+/* =========================
+   CARD / LAYOUT GLOBAL
+========================= */
+
+.room-card {
+  max-width: 560px;
+  max-height: 90vh;
+
+  display: flex;
+  flex-direction: column;
+
+  position: relative;
+  overflow: hidden;
+}
+
+/* =========================
+   GRID (input+GO) + (back+refresh)
+========================= */
+
+.room-grid {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.room-joinbox {
+  margin-bottom: 14px;
+}
+
+/* footer en bas */
+.room-footer {
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+/* ✅ Responsive : en petit écran -> colonne */
+@media (max-width: 520px) {
+  .room-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .room-grid .retro-btn,
+  .room-grid .retro-btn-search,
+  .room-grid .retro-btn-go {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* =========================
+   GO / JOIN BUTTON (vert rétro)
+========================= */
+
+.room-card .retro-btn-go {
+  background-color: #00a000;
+  color: #fff;
+
+  border: 4px solid #000;
+  box-shadow: 4px 4px 0px #000;
+  border-radius: 14px;
+  font-family: "Press Start 2P", cursive;
+
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s, filter 0.12s;
+
+  padding: 0 18px;
+  font-size: 0.8rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.room-card .retro-btn-go:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 #000;
+}
+
+.room-card .retro-btn-go:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* =========================
+   ERROR
+========================= */
+
+.room-error {
+  margin: 0 0 12px;
+  background: #fff;
+  border: 4px solid #000;
+  box-shadow: 4px 4px 0px #000;
+  padding: 12px;
+  border-radius: 14px;
+  font-size: 0.65rem;
+  color: #000;
+}
+
+/* =========================
+   LIST (petite + rectangle blanc + scroll)
+========================= */
+
+/* ✅ le "cadre" blanc */
+.room-list {
+  background: #fff;
+  border: 4px solid #000;
+  box-shadow: 4px 4px 0px #000;
+  border-radius: 14px;
+
+  padding: 12px;
+  margin-top: 10px;
+
+  /* ✅ taille plus petite */
+  max-height: 300px;
+
+  /* ✅ scroll visible */
+  overflow-y: auto;
+
+  /* IMPORTANT pour flex */
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* scrollbar un peu plus clean (Chrome/Edge/Safari) */
+.room-list::-webkit-scrollbar {
+  width: 10px;
+}
+.room-list::-webkit-scrollbar-track {
+  background: #fff7c2;
+  border-left: 3px solid #000;
+}
+.room-list::-webkit-scrollbar-thumb {
+  background: #e52521;
+  border: 3px solid #000;
+  border-radius: 10px;
+}
+
+/* Item room */
+.room-item {
+  background: #fff7c2;
+  color: #000;
+  border: 4px solid #000;
+  box-shadow: 4px 4px 0px #000;
+  border-radius: 14px;
+  padding: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+}
+
+.room-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.room-id {
+  font-size: 0.85rem; /* ✅ plus petit */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.room-chip {
+  border: 3px solid #000;
+  background: #fff;
+  padding: 6px 8px;
+  font-size: 0.55rem;
+  box-shadow: 3px 3px 0px #000;
+}
+
+/* Empty state (dans le cadre blanc) */
+.room-empty {
+  background: #fff7c2;
+  border: 4px solid #000;
+  box-shadow: 4px 4px 0px #000;
+  padding: 14px;
+  border-radius: 14px;
+  font-size: 0.7rem;
+  color: #000;
+}
