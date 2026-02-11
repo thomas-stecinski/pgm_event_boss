@@ -14,7 +14,7 @@ const HomePage = ({ onJoin, onCreate }) => {
     if (!name) return alert("Il faut un pseudo !");
     if (!rid) return alert("Il faut un ID de room pour rejoindre !");
 
-    onJoin(name, rid); // ✅ on passe username + roomId
+    onJoin(name, rid);
   };
 
   const handleCreateClick = (e) => {
@@ -23,7 +23,7 @@ const HomePage = ({ onJoin, onCreate }) => {
     const name = username.trim();
     if (!name) return alert("Il faut un pseudo !");
 
-    onCreate(name); // ✅ on passe username
+    onCreate(name);
   };
 
   return (
@@ -33,8 +33,7 @@ const HomePage = ({ onJoin, onCreate }) => {
           SUPER CLICK<br />BROS
         </h1>
 
-        <form>
-          {/* PLAYER NAME (sans bouton GO) */}
+        <form className="game-form">
           <input
             type="text"
             className="retro-input"
@@ -45,7 +44,10 @@ const HomePage = ({ onJoin, onCreate }) => {
             required
           />
 
-          {/* JOIN ROOM */}
+          <button type="button" onClick={handleCreateClick} className="retro-btn">
+            CREATE ROOM
+          </button>
+
           <div className="input-group">
             <input
               type="text"
@@ -59,9 +61,8 @@ const HomePage = ({ onJoin, onCreate }) => {
             </button>
           </div>
 
-          {/* CREATE ROOM */}
-          <button type="button" onClick={handleCreateClick} className="retro-btn">
-            CREATE ROOM
+          <button type="button" onClick={handleJoinClick} className="retro-btn-search">
+            RESEARCH ROOM
           </button>
         </form>
       </div>

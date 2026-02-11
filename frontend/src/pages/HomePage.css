@@ -1,98 +1,107 @@
-/* Import d'une police Google Font "Pixel" */
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
 body, html {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow: hidden; /* Empêche le scroll inutile */
+  overflow: hidden;
 }
 
-/* Le conteneur principal qui prend tout l'écran */
 .game-container {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
   width: 100vw;
-  
-  background-image: url('src/assets/home_assets.png'); 
+
+  background-image: url('src/assets/home_assets.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 
-  background-color: rgba(0, 0, 0, 0.4); 
+  background-color: rgba(0, 0, 0, 0.4);
   background-blend-mode: darken;
-  
-  font-family: 'Press Start 2P', cursive; /* Police rétro */
+
+  font-family: 'Press Start 2P', cursive;
 }
 
-/* La carte du formulaire (la boîte blanche/jaune au milieu) */
 .game-card {
-  background-color: #fbd000; 
-  padding: 3rem;
+  background-color: #fbd000;
+  padding: 2.5rem;                 /* un peu moins gros */
   border: 4px solid #000;
-  box-shadow: 8px 8px 0px #000; 
+  box-shadow: 8px 8px 0px #000;
   border-radius: 4px;
   text-align: center;
-  max-width: 400px;
+  max-width: 420px;
   width: 90%;
-  position: relative;
 }
 
-/* Titre du jeu */
 .game-title {
-  color: #e52521; /* Rouge Mario */
+  color: #e52521;
   text-shadow: 2px 2px 0px #000;
-  margin-bottom: 2rem;
+  margin-bottom: 1.6rem;           /* mieux */
   font-size: 1.5rem;
   line-height: 1.5;
 }
 
-/* Les champs de texte */
+/* ✅ Gestion propre des espaces */
+.game-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;                        /* espace constant entre blocs */
+}
+
+/* Inputs */
 .retro-input {
-  display: block;
   width: 100%;
   padding: 15px;
-  margin-bottom: 15px;
   background: #fff;
   border: 4px solid #000;
   font-family: 'Press Start 2P', cursive;
   font-size: 0.8rem;
   box-sizing: border-box;
   outline: none;
-  color: #000000;
-  transition: background-color 0.1s;
+  color: #000;
+  margin: 0;                        /* IMPORTANT: on laisse le gap gérer */
+  transition: background-color 0.12s, transform 0.08s, box-shadow 0.12s, border-color 0.12s;
 }
 
-/* Le bouton principal "START" */
-.retro-btn {
-  background-color: #e52521; /* Rouge Mario */
-  color: #fff;
-  border: 4px solid #000;
-  padding: 15px 30px;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 1rem;
-  cursor: pointer;
-  box-shadow: 4px 4px 0px #000;
-  transition: transform 0.1s, box-shadow 0.1s;
-  width: 100%;
-  margin-top: 10px;
+.retro-input:focus,
+.retro-input:focus-visible {
+  background: #fff7c2;
+  border-color: #e52521;
+  box-shadow: 0 0 0 4px #000, 0 0 12px rgba(229, 37, 33, 0.65);
+  transform: translate(-1px, -1px);
 }
 
-/* Conteneur pour aligner l'input et le bouton côte à côte */
+/* Row ROOM ID + GO */
 .input-group {
   display: flex;
-  gap: 10px; 
-  margin-bottom: 15px;
+  gap: 12px;
+  align-items: stretch;            /* ✅ même hauteur */
 }
 
 .input-group .retro-input {
-  margin-bottom: 0; 
-  flex-grow: 1;
+  flex: 1;
 }
 
-/* Le petit bouton "GO" */
+/* Bouton rouge CREATE ROOM */
+.retro-btn {
+  background-color: #e52521;
+  color: #fff;
+  border: 4px solid #000;
+  padding: 15px 18px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 4px 4px 0px #000;
+  transition: transform 0.1s, box-shadow 0.1s, filter 0.12s;
+  width: 100%;
+  margin: 0;                        /* IMPORTANT: gap gère */
+  border-radius: 14px;              /* ✅ plus “clean” */
+}
+
+/* ✅ GO jaune (au lieu de vert) */
 .retro-btn-go {
   background-color: #00a000; /* Vert Luigi */
   color: #fff;
@@ -100,15 +109,48 @@ body, html {
   font-family: 'Press Start 2P', cursive;
   cursor: pointer;
   box-shadow: 4px 4px 0px #000;
-  padding: 0 20px; 
+  padding: 0 18px;
   font-size: 0.8rem;
+  min-width: 96px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.1s, box-shadow 0.1s, filter 0.12s;
+  border-radius: 14px;
 }
 
-/* Effet quand on clique sur le bouton (il s'enfonce) */
-.retro-btn:active {
+/* ✅ RESEARCH ROOM jaune (différent du rouge) */
+.retro-btn-search {
+  background-color: #ffe06a;
+  color: #000;
+  border: 4px solid #000;
+  padding: 15px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 4px 4px 0px #000;
+  transition: transform 0.1s, box-shadow 0.1s, filter 0.12s;
+  width: 100%;
+  margin: 0;
+  border-radius: 14px;
+}
+
+/* Focus visible boutons */
+.retro-btn:focus,
+.retro-btn:focus-visible,
+.retro-btn-go:focus,
+.retro-btn-go:focus-visible,
+.retro-btn-search:focus,
+.retro-btn-search:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px #000, 0 0 12px rgba(255, 255, 255, 0.6);
+  filter: brightness(1.05);
+}
+
+/* Active (enfoncé) */
+.retro-btn:active,
+.retro-btn-go:active,
+.retro-btn-search:active {
   transform: translate(4px, 4px);
-  box-shadow: 0px 0px 0px #000;
+  box-shadow: 0 0 0 #000;
 }
