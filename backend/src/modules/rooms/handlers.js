@@ -85,11 +85,25 @@ function registerRoomHandlers(io, socket) {
       const roomId = socket.data.currentRoomId;
       if (!roomId) return ack?.({ ok: true });
 
+      const room = await getRoom(roomId);
+      const isHost = room && room.hostUserId === socket.user.userId;
+
       await removePlayer(roomId, socket.user.userId);
       await socket.leave(roomId);
       socket.data.currentRoomId = null;
 
-      await emitRoomState(io, roomId);
+      if (isHost) {
+        io.to(roomId).emit("room:deleted", { roomId, reason: "HOST_LEFT" });
+        await deleteRoom(roomId);
+      } else {
+        const players = await getPlayers(roomId);
+        if (players.length === 0) {
+          await deleteRoom(roomId);
+        } else {
+          await emitRoomState(io, roomId);
+        }
+      }
+
       ack?.({ ok: true });
     } catch (e) {
       ack?.({ ok: false, error: e.message || "LEAVE_ROOM_FAILED" });
@@ -98,15 +112,24 @@ function registerRoomHandlers(io, socket) {
 
   socket.on("disconnect", async () => {
     const roomId = socket.data.currentRoomId;
-    const players = await getPlayers(roomId);
     if (!roomId) return;
+
+    const room = await getRoom(roomId);
+    const isHost = room && room.hostUserId === socket.user.userId;
+
     await removePlayer(roomId, socket.user.userId);
-    await emitRoomState(io, roomId);
 
-    if (players.length === 0) {
+    if (isHost) {
+      io.to(roomId).emit("room:deleted", { roomId, reason: "HOST_LEFT" });
       await deleteRoom(roomId);
+    } else {
+      const players = await getPlayers(roomId);
+      if (players.length === 0) {
+        await deleteRoom(roomId);
+      } else {
+        await emitRoomState(io, roomId);
+      }
     }
-
   });
 }
 
