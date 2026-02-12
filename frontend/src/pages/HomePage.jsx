@@ -14,7 +14,7 @@ const HomePage = ({ onCreate, onGoRooms }) => {
     }
   }, []);
 
-  //  sauvegarde automatique du dernier pseudo
+  // sauvegarde automatique du dernier pseudo
   useEffect(() => {
     const clean = (username || "").trim();
 

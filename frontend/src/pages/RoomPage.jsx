@@ -37,22 +37,21 @@ const RoomPage = ({ socket, onBack, onJoin }) => {
   useEffect(() => {
     if (!socket) return;
 
-    //  1) sync initial
+    // sync initial
     fetchRooms();
 
-    //  2) LIVE updates depuis backend
+    // LIVE updates depuis backend
     const onListUpdate = (payload) => {
       setRooms(payload?.rooms || []);
       setError("");
       setLoading(false);
 
-      // pulse propre (pas de fuite)
       setPulse(true);
       if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current);
       pulseTimeoutRef.current = setTimeout(() => setPulse(false), 220);
     };
 
-    //  3) reconnect => resync
+    // reconnect => resync
     const onConnect = () => fetchRooms();
 
     socket.on("room:list:update", onListUpdate);
@@ -63,7 +62,6 @@ const RoomPage = ({ socket, onBack, onJoin }) => {
       socket.off("connect", onConnect);
       if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket]);
 
   const handleJoin = (rid) => {

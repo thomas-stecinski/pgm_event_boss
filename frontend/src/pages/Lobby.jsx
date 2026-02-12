@@ -40,7 +40,6 @@ const Lobby = ({ roomData, currentUserId, onLeave, onStart }) => {
   const handleDurationBlur = () => {
     const raw = durationInput;
 
-    // empty -> default
     if (raw === "" || raw == null) {
       setDurationInput(String(DEFAULT_DURATION));
       return;
@@ -97,8 +96,8 @@ const Lobby = ({ roomData, currentUserId, onLeave, onStart }) => {
                 max={MAX_DURATION}
                 step={5}
                 value={durationInput}
-                onChange={(e) => setDurationInput(e.target.value)} // ✅ libre
-                onBlur={handleDurationBlur} // ✅ clamp au blur
+                onChange={(e) => setDurationInput(e.target.value)} 
+                onBlur={handleDurationBlur} 
               />
               <div className="time-badge">SEC</div>
             </div>
