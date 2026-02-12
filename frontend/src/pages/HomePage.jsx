@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useGame } from "../context/GameContext";
 import "./HomePage.css";
 
 const LS_USERNAME_KEY = "scb_username";
 
-const HomePage = ({ onCreate, onGoRooms }) => {
+const HomePage = () => {
   const [username, setUsername] = useState("");
+  const { login } = useGame(); // Utilisation du context
 
-  //  restaure le dernier pseudo si présent
+  // Restaure le dernier pseudo
   useEffect(() => {
     const saved = localStorage.getItem(LS_USERNAME_KEY);
     if (saved && saved.trim()) {
@@ -14,10 +16,9 @@ const HomePage = ({ onCreate, onGoRooms }) => {
     }
   }, []);
 
-  // sauvegarde automatique du dernier pseudo
+  // Sauvegarde auto
   useEffect(() => {
     const clean = (username || "").trim();
-
     if (clean) {
       localStorage.setItem(LS_USERNAME_KEY, clean);
     } else {
@@ -25,28 +26,17 @@ const HomePage = ({ onCreate, onGoRooms }) => {
     }
   }, [username]);
 
-  const handleCreateClick = (e) => {
+  const handleGo = async (e) => {
     e.preventDefault();
-
     const name = username.trim();
     if (!name) {
       alert("Entre un pseudo !");
       return;
     }
-
-    onCreate?.(name);
-  };
-
-  const handleResearchClick = (e) => {
-    e.preventDefault();
-
-    const name = username.trim();
-    if (!name) {
-      alert("Entre un pseudo !");
-      return;
-    }
-
-    onGoRooms?.(name);
+    
+    // login gère le fetch + la connexion socket + la mise à jour du state
+    // App.jsx détectera le changement et affichera RoomPage
+    await login(name); 
   };
 
   return (
@@ -56,7 +46,7 @@ const HomePage = ({ onCreate, onGoRooms }) => {
           SUPER CLICK<br />BROS
         </h1>
 
-        <form className="game-form">
+        <form className="game-form" onSubmit={handleGo}>
           <input
             type="text"
             className="retro-input"
@@ -66,12 +56,8 @@ const HomePage = ({ onCreate, onGoRooms }) => {
             maxLength={12}
           />
 
-          <button type="button" onClick={handleCreateClick} className="retro-btn">
-            CREATE ROOM
-          </button>
-
-          <button type="button" onClick={handleResearchClick} className="retro-btn-search">
-            RESEARCH ROOM
+          <button type="button" onClick={handleGo} className="retro-btn">
+            ENTER GAME
           </button>
         </form>
       </div>

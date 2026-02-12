@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useGame } from "../context/GameContext";
 import "./GamePage.css";
 import MarioImg from "../assets/Mario.png";
 import BowserImg from "../assets/Bowser.png";
@@ -19,29 +20,22 @@ const POWER_DETAILS = {
   default: { label: "NORMAL", img: null, desc: "D\u00e9g\u00e2ts classiques" }
 };
 
-const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
-  const [phase, setPhase] = useState("CHOOSING");
-  const [timer, setTimer] = useState(0);
-  const [scores, setScores] = useState({ A: 0, B: 0 });
-  const [personalScore, setPersonalScore] = useState(0);
+const GamePage = () => {
+  // Utilisation du Context
+  const { socket, user, roomData, gameState, error, leaveRoom } = useGame();
+  
+  // Déstructuration des données du state global
+  const { phase, scores, timer, personalScore, offers, myTeam, winner, finalScores } = gameState;
 
-  const [offers, setOffers] = useState(initialOffers || []);
+  // États locaux (UI only)
   const [selectedPower, setSelectedPower] = useState("double_impact");
   const [hasChosen, setHasChosen] = useState(false);
-  const [result, setResult] = useState(null);
+  const [playerScores, setPlayerScores] = useState({}); // Leaderboard local animé
 
-  // Scores individuels de tous les joueurs { [userId]: { name, team, personalScore, clickCount } }
-  const [playerScores, setPlayerScores] = useState({});
-
-  const [connectionError, setConnectionError] = useState(null);
-
-  // Determiner ma team
-  const [myTeam, setMyTeam] = useState(null);
-
+  // Gestion des animations de clics (Effets visuels uniquement)
   const createOtherPlayerClickEffect = (damage, team) => {
     const el = document.createElement("div");
     el.className = `click-feedback other-click ${team === "A" ? "mario-click" : "bowser-click"}`;
-    // Position aleatoire sur l'ecran
     const x = Math.random() * (window.innerWidth - 100) + 50;
     const y = Math.random() * (window.innerHeight - 200) + 100;
     el.style.left = `${x}px`;
@@ -49,153 +43,6 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
     el.innerText = damage >= 0 ? `+${damage}` : `${damage}`;
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 500);
-  };
-
- // Synchronisation des offres initiales (Props -> State)
-  useEffect(() => {
-    if (initialOffers && initialOffers.length > 0) {
-      setOffers(initialOffers);
-    }
-  }, [initialOffers]);
-
-  // 2. Initialisation de l'équipe depuis roomData
-  // On n'attend pas le socket, on regarde tout de suite si on est déjà dans la liste des joueurs
-  useEffect(() => {
-    if (roomData && roomData.players && currentUser) {
-      const me = roomData.players.find((p) => p.userId === currentUser.userId);
-      if (me && me.team) {
-        setMyTeam(me.team);
-      }
-    }
-  }, [roomData, currentUser]);
-
-  // 3. Gestion des événements Socket
-  useEffect(() => {
-    if (!socket) {
-      setConnectionError("Socket non initialisé.");
-      return;
-    }
-
-    const handleMyTeam = (data) => {
-      console.log("Team received via socket:", data.team); // Debug
-      setMyTeam(data.team);
-    };
-
-    const handleOffers = (data) => {
-      setOffers(data.offers || []);
-    };
-
-    const handlePlay = () => {
-      setPhase("PLAYING");
-    };
-
-    const handleTimer = (data) => {
-      setTimer(data.timeLeftMs);
-      if (data.phase) {
-        setPhase(data.phase);
-      }
-    };
-
-    const handleScoreUpdate = (d) => {
-      setScores(d.scores);
-    };
-
-    const handlePersonalScore = (d) => {
-      setPersonalScore(d.personalScore);
-    };
-
-    const handlePlayerClick = (d) => {
-      setPlayerScores((prev) => ({
-        ...prev,
-        [d.userId]: {
-          name: d.name,
-          team: d.team,
-          personalScore: d.personalScore,
-          clickCount: d.clickCount,
-        },
-      }));
-
-      // Effet visuel pour les autres joueurs
-      if (d.userId !== currentUser?.userId) {
-        createOtherPlayerClickEffect(d.damage, d.team);
-      }
-    };
-
-    const handleGameEnd = (d) => {
-      setPhase("ENDED");
-      setResult({ winner: d.winner, finalScores: d.scores });
-    };
-
-    const handleDisconnect = (reason) => {
-        console.log("Socket disconnected:", reason);
-      let msg = "Connexion perdue...";
-      if (reason === "io server disconnect") msg = "Le serveur a fermé la connexion.";
-      if (reason === "transport close") msg = "Le serveur ne répond plus.";
-      setConnectionError(msg);
-    };
-
-    const handleConnectError = () => {
-        console.log("Erreur de connexion au serveur");
-      setConnectionError("Impossible de rejoindre le serveur.");
-    };
-
-    const handleConnect = () => {
-        console.log("Connecté au serveur");
-      setConnectionError(null);
-      // Au cas où on se reconnecte, on redemande notre team si on l'a perdue
-      if (!myTeam && currentUser) {
-        // Do nothing
-      }
-    };
-
-    // --- Abonnements ---
-    socket.on("game:myTeam", handleMyTeam);
-    socket.on("game:offers", handleOffers);
-    socket.on("game:play", handlePlay);
-    socket.on("game:timer", handleTimer);
-    socket.on("game:score:update", handleScoreUpdate);
-    socket.on("game:personalScore:update", handlePersonalScore);
-    socket.on("game:playerClick", handlePlayerClick);
-    socket.on("game:end", handleGameEnd);
-    socket.on("disconnect", handleDisconnect);
-    socket.on("connect_error", handleConnectError);
-    socket.on("connect", handleConnect);
-
-    // --- Nettoyage ---
-    return () => {
-      socket.off("game:myTeam", handleMyTeam);
-      socket.off("game:offers", handleOffers);
-      socket.off("game:play", handlePlay);
-      socket.off("game:timer", handleTimer);
-      socket.off("game:score:update", handleScoreUpdate);
-      socket.off("game:personalScore:update", handlePersonalScore);
-      socket.off("game:playerClick", handlePlayerClick);
-      socket.off("game:end", handleGameEnd);
-      socket.off("disconnect", handleDisconnect);
-      socket.off("connect_error", handleConnectError);
-      socket.off("connect", handleConnect);
-    };
-  }, [socket, currentUser?.userId, myTeam]); // Ajout de myTeam dans les deps pour la logique de reconnexion éventuelle
-
-  const handleChoosePower = (powerId) => {
-    if (connectionError) return;
-
-    socket.emit("game:choosePower", { roomId: roomData.room.roomId, powerId }, (ack) => {
-      if (ack?.ok) {
-        setSelectedPower(powerId);
-        setHasChosen(true);
-      }
-    });
-  };
-
-  const handleClick = (e) => {
-    if (phase !== "PLAYING" || connectionError) return;
-
-    socket.emit("game:click", { roomId: roomData.room.roomId }, (ack) => {
-      if (ack?.ok) {
-        createClickEffect(e.clientX, e.clientY, ack.damage, ack.powerId);
-      }
-    });
   };
 
   const createClickEffect = (x, y, damage, powerId) => {
@@ -213,31 +60,73 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
     } else {
       el.innerText = damage >= 0 ? `+${damage}` : `${damage}`;
     }
-
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 600);
   };
 
- 
+  // Listener pour les clics des autres (Animations)
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handlePlayerClick = (d) => {
+      setPlayerScores((prev) => ({
+        ...prev,
+        [d.userId]: {
+          name: d.name,
+          team: d.team,
+          personalScore: d.personalScore,
+          clickCount: d.clickCount,
+        },
+      }));
+
+      // Effet visuel pour les autres joueurs
+      if (d.userId !== user?.userId) {
+        createOtherPlayerClickEffect(d.damage, d.team);
+      }
+    };
+    
+    socket.on("game:playerClick", handlePlayerClick);
+    return () => socket.off("game:playerClick", handlePlayerClick);
+  }, [socket, user]);
+
+  const handleChoosePower = (powerId) => {
+    if (error) return;
+    socket.emit("game:choosePower", { roomId: roomData.room.roomId, powerId }, (ack) => {
+      if (ack?.ok) {
+        setSelectedPower(powerId);
+        setHasChosen(true);
+      }
+    });
+  };
+
+  const handleClick = (e) => {
+    if (phase !== "PLAYING" || error) return;
+    socket.emit("game:click", { roomId: roomData.room.roomId }, (ack) => {
+      if (ack?.ok) {
+        createClickEffect(e.clientX, e.clientY, ack.damage, ack.powerId);
+      }
+    });
+  };
 
   const handleQuit = (e) => {
     e.stopPropagation();
-    onBack();
+    leaveRoom(); // Utilise la fonction du context
   };
 
   // --- COMPUTED ---
   const totalScore = scores.A + scores.B;
   const secondsLeft = Math.ceil(timer / 1000);
   const activePowerInfo = POWER_DETAILS[selectedPower] || POWER_DETAILS["default"];
-
-  // Mario (A) toujours a gauche, Bowser (B) toujours a droite
   const percentA = totalScore === 0 ? 50 : (scores.A / totalScore) * 100;
   const labelA = myTeam === "A" ? "Your team" : "Challenger";
   const labelB = myTeam === "B" ? "Your team" : "Challenger";
   const labelClassA = myTeam === "A" ? "your-team" : "challenger";
   const labelClassB = myTeam === "B" ? "your-team" : "challenger";
+  
+  // Logique Danger
+  const isDanger = (myTeam === "A" && scores.B > scores.A) || (myTeam === "B" && scores.A > scores.B);
 
-  // Leaderboard : top 10 joueurs tries par score, melange des 2 equipes
+  // Leaderboard
   const leaderboard = Object.entries(playerScores)
     .map(([uid, p]) => ({ uid, ...p }))
     .sort((a, b) => b.personalScore - a.personalScore)
@@ -245,13 +134,9 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
 
   return (
     <div className="game-container game-page" onClick={handleClick}>
+      <button className="quit-btn" onClick={handleQuit} title="Abandonner la partie">EXIT</button>
 
-      {/* BOUTON QUIT */}
-      <button className="quit-btn" onClick={handleQuit} title="Abandonner la partie">
-        EXIT
-      </button>
-
-      {/* HUD HAUT : ligne 1 = scores + barre */}
+      {/* HUD HAUT */}
       <div className="hud-top">
         <div className="hud-row-1">
           <div className="score-box team-a">
@@ -261,6 +146,11 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
           </div>
 
           <div className="progress-container">
+            {isDanger && (
+              <div className="danger-alert">
+                <span className="skull-icon">☠️</span>
+              </div>
+            )}
             <div className="progress-bar-fill team-a-bg" style={{ width: `${percentA}%` }} />
             <div className="progress-bar-fill team-b-bg" style={{ width: `${100 - percentA}%` }} />
             <div className="progress-divider" style={{ left: `${percentA}%` }}></div>
@@ -273,7 +163,6 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
           </div>
         </div>
 
-        {/* ligne 2 = timer centre */}
         <div className="hud-row-2">
           <div className="timer-box">
             {phase === "CHOOSING" ? "CHOOSE!" : secondsLeft + "s"}
@@ -284,7 +173,7 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
       <img src={MarioImg} alt="Mario" className="char-img char-left" />
       <img src={BowserImg} alt="Bowser" className="char-img char-right" />
 
-      {/* ZONE GAUCHE : mon pouvoir + mes clics */}
+      {/* HUD GAUCHE */}
       {phase === "PLAYING" && (
         <div className="hud-left">
           <div className="active-power-indicator">
@@ -297,7 +186,7 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
         </div>
       )}
 
-      {/* ZONE DROITE : mini leaderboard */}
+      {/* HUD DROITE (Leaderboard) */}
       {phase === "PLAYING" && (
         <div className="hud-right">
           <div className="leaderboard">
@@ -307,20 +196,13 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
             </div>
             <div className="lb-list">
               {leaderboard.map((p, i) => {
-                const isMe = p.uid === currentUser?.userId;
+                const isMe = p.uid === user?.userId;
                 const teamColor = p.team === "A" ? "mario-text" : "bowser-text";
                 return (
-                  <div
-                    key={p.uid}
-                    className={`lb-row ${isMe ? "lb-row-me" : ""}`}
-                  >
+                  <div key={p.uid} className={`lb-row ${isMe ? "lb-row-me" : ""}`}>
                     <span className="lb-rank">{i + 1}.</span>
-                    <span className={`lb-name ${teamColor} ${isMe ? "lb-me-bold" : ""}`}>
-                      {p.name}
-                    </span>
-                    <span className={`lb-score ${teamColor} ${isMe ? "lb-me-bold" : ""}`}>
-                      {p.personalScore}
-                    </span>
+                    <span className={`lb-name ${teamColor} ${isMe ? "lb-me-bold" : ""}`}>{p.name}</span>
+                    <span className={`lb-score ${teamColor} ${isMe ? "lb-me-bold" : ""}`}>{p.personalScore}</span>
                   </div>
                 );
               })}
@@ -330,7 +212,7 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
       )}
 
       {/* OVERLAY CHOOSING */}
-      {phase === "CHOOSING" && !connectionError && (
+      {phase === "CHOOSING" && !error && (
         <div className="overlay choosing-overlay">
           <div className={`choosing-team-badge ${myTeam === "A" ? "badge-mario" : "badge-bowser"}`}>
             TEAM {myTeam === "A" ? "MARIO" : myTeam === "B" ? "BOWSER" : "..."}
@@ -361,67 +243,34 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
       )}
 
       {/* OVERLAY ENDED */}
-      {phase === "ENDED" && result && !connectionError && (() => {
-        const iWon = result.winner === myTeam;
-        const isDraw = result.winner === "DRAW";
-        const winnerTeamName = result.winner === "A" ? "MARIO" : "BOWSER";
+      {phase === "ENDED" && finalScores && !error && (() => {
+        const iWon = winner === myTeam;
+        const isDraw = winner === "DRAW";
+        const winnerTeamName = winner === "A" ? "MARIO" : "BOWSER";
         return (
           <div className="overlay end-overlay">
-            {isDraw ? (
-              <h1 className="end-title draw-title">DRAW!</h1>
-            ) : iWon ? (
-              <h1 className="end-title winner-title">WINNER!</h1>
-            ) : (
-              <h1 className="end-title loser-title">DEFEATED</h1>
-            )}
-
-            {!isDraw && (
-              <h2 className="winner-announce">
-                Team {winnerTeamName} wins!
-              </h2>
-            )}
-
+            {isDraw ? ( <h1 className="end-title draw-title">DRAW!</h1> ) : iWon ? ( <h1 className="end-title winner-title">WINNER!</h1> ) : ( <h1 className="end-title loser-title">DEFEATED</h1> )}
+            {!isDraw && (<h2 className="winner-announce">Team {winnerTeamName} wins!</h2>)}
             <div className="final-scores">
-              <p className="mario-text">MARIO: {result.finalScores.A}</p>
-              <p className="bowser-text">BOWSER: {result.finalScores.B}</p>
+              <p className="mario-text">MARIO: {finalScores.A}</p>
+              <p className="bowser-text">BOWSER: {finalScores.B}</p>
             </div>
-
-            {leaderboard.length > 0 && (
-              <div className="end-leaderboard">
-                <h3 className="end-lb-title">TOP PLAYERS</h3>
-                {leaderboard.map((p, i) => {
-                  const isMe = p.uid === currentUser?.userId;
-                  const teamColor = p.team === "A" ? "mario-text" : "bowser-text";
-                  return (
-                    <div key={p.uid} className={`end-lb-row ${isMe ? "lb-me-bold" : ""}`}>
-                      <span className="end-lb-rank">{i + 1}.</span>
-                      <span className={`end-lb-name ${teamColor}`}>{p.name}</span>
-                      <span className={`end-lb-score ${teamColor}`}>{p.personalScore}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <button className="retro-btn" onClick={onBack}>HOME</button>
+            <button className="retro-btn" onClick={leaveRoom}>HOME</button>
           </div>
         );
       })()}
 
       {/* OVERLAY ERREUR */}
-      {connectionError && (
+      {error && (
         <div className="overlay error-overlay">
           <div className="error-box">
             <h1>ERROR</h1>
-            <p className="error-msg">{connectionError}</p>
+            <p className="error-msg">{error}</p>
             <div className="error-loader">Reconnexion en cours...</div>
-            <button className="retro-btn quit-force-btn" onClick={handleQuit}>
-              ABANDONNER / QUITTER
-            </button>
+            <button className="retro-btn quit-force-btn" onClick={leaveRoom}>ABANDONNER / QUITTER</button>
           </div>
         </div>
       )}
-
     </div>
   );
 };

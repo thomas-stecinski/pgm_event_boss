@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useGame } from "../context/GameContext";
 import "./Lobby.css";
 
 const DEFAULT_DURATION = 90;
@@ -7,12 +8,16 @@ const MAX_DURATION = 300;
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
-const Lobby = ({ roomData, currentUserId, onLeave, onStart }) => {
+const Lobby = () => {
+  const { roomData, user, socket, leaveRoom } = useGame();
+  
+  // Protection si roomData est null (ne devrait pas arriver grâce à App.jsx)
+  if (!roomData) return null;
+
   const { room, players } = roomData;
-  const isHost = room.hostUserId === currentUserId;
+  const isHost = room.hostUserId === user.userId;
 
   const [copied, setCopied] = useState(false);
-
   const [durationInput, setDurationInput] = useState(String(DEFAULT_DURATION));
 
   const durationSec = useMemo(() => {
@@ -21,7 +26,6 @@ const Lobby = ({ roomData, currentUserId, onLeave, onStart }) => {
     return clamp(Math.floor(n), MIN_DURATION, MAX_DURATION);
   }, [durationInput]);
 
-  //  reset when changing room
   useEffect(() => {
     setDurationInput(String(DEFAULT_DURATION));
   }, [room.roomId]);
@@ -31,35 +35,14 @@ const Lobby = ({ roomData, currentUserId, onLeave, onStart }) => {
       await navigator.clipboard.writeText(room.roomId);
       setCopied(true);
       setTimeout(() => setCopied(false), 600);
-    } catch (e) {
-      console.error("Copy failed", e);
-    }
-  };
-
-  //  clamp uniquement quand on quitte le champ
-  const handleDurationBlur = () => {
-    const raw = durationInput;
-
-    if (raw === "" || raw == null) {
-      setDurationInput(String(DEFAULT_DURATION));
-      return;
-    }
-
-    const n = Number(raw);
-
-    // invalide -> default
-    if (!Number.isFinite(n)) {
-      setDurationInput(String(DEFAULT_DURATION));
-      return;
-    }
-
-    const fixed = clamp(Math.floor(n), MIN_DURATION, MAX_DURATION);
-    setDurationInput(String(fixed));
+    } catch (e) { console.error("Copy failed", e); }
   };
 
   const handleStart = () => {
-    //  start with validated duration
-    onStart?.(durationSec);
+    if (!socket) return;
+    socket.emit("game:start", { roomId: room.roomId, durationSec }, (ack) => {
+        if (!ack?.ok) alert("Erreur start: " + (ack?.error || "FAILED"));
+    });
   };
 
   return (
@@ -67,27 +50,18 @@ const Lobby = ({ roomData, currentUserId, onLeave, onStart }) => {
       <div className="lobby-card">
         <div className="lobby-header">
           <h2 className={`room-title ${copied ? "copied" : ""}`}>Room:{room.roomId}</h2>
-
-          <button
-            className={`copy-btn ${copied ? "copied" : ""}`}
-            onClick={copyRoomId}
-            title="Copier l'ID"
-            type="button"
-          >
+          <button className={`copy-btn ${copied ? "copied" : ""}`} onClick={copyRoomId} title="Copier l'ID">
             {copied ? "✔" : "📋"}
           </button>
         </div>
 
         <div className="status-bar">
-          STATUS:{" "}
-          <span className={room.status === "WAITING" ? "blink" : ""}>{room.status}</span>
+          STATUS: <span className={room.status === "WAITING" ? "blink" : ""}>{room.status}</span>
         </div>
 
-        {/*  GAME TIME: host only */}
         {isHost && (
           <div className="time-panel">
             <div className="time-label">GAME TIME</div>
-
             <div className="time-row">
               <input
                 className="time-input"
@@ -97,13 +71,8 @@ const Lobby = ({ roomData, currentUserId, onLeave, onStart }) => {
                 step={5}
                 value={durationInput}
                 onChange={(e) => setDurationInput(e.target.value)} 
-                onBlur={handleDurationBlur} 
               />
               <div className="time-badge">SEC</div>
-            </div>
-
-            <div className="time-hint">
-              Min {MIN_DURATION}s · Max {MAX_DURATION}s
             </div>
           </div>
         )}
@@ -112,7 +81,7 @@ const Lobby = ({ roomData, currentUserId, onLeave, onStart }) => {
           <h3>PLAYERS ({players.length})</h3>
           <ul>
             {players.map((p) => (
-              <li key={p.userId} className={p.userId === currentUserId ? "me" : ""}>
+              <li key={p.userId} className={p.userId === user.userId ? "me" : ""}>
                 <span className="player-icon">{p.userId === room.hostUserId ? "👑" : "🍄"}</span>
                 {p.name}
               </li>
@@ -122,17 +91,11 @@ const Lobby = ({ roomData, currentUserId, onLeave, onStart }) => {
 
         <div className="actions">
           {isHost && (
-            <button
-              className="retro-btn start-btn"
-              disabled={players.length < 2}
-              onClick={handleStart}
-              type="button"
-            >
+            <button className="retro-btn start-btn" disabled={players.length < 2} onClick={handleStart}>
               START GAME
             </button>
           )}
-
-          <button onClick={onLeave} className="retro-btn leave-btn" type="button">
+          <button onClick={leaveRoom} className="retro-btn leave-btn">
             EXIT ROOM
           </button>
         </div>
