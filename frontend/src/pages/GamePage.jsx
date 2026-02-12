@@ -51,14 +51,14 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
     setTimeout(() => el.remove(), 500);
   };
 
- // 1. Synchronisation des offres initiales (Props -> State)
+ // Synchronisation des offres initiales (Props -> State)
   useEffect(() => {
     if (initialOffers && initialOffers.length > 0) {
       setOffers(initialOffers);
     }
   }, [initialOffers]);
 
-  // 2. CORRECTION CRITIQUE : Initialisation de l'équipe depuis roomData
+  // 2. Initialisation de l'équipe depuis roomData
   // On n'attend pas le socket, on regarde tout de suite si on est déjà dans la liste des joueurs
   useEffect(() => {
     if (roomData && roomData.players && currentUser) {
@@ -141,7 +141,7 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
       setConnectionError(null);
       // Au cas où on se reconnecte, on redemande notre team si on l'a perdue
       if (!myTeam && currentUser) {
-          // Optionnel : on pourrait émettre un event pour redemander l'état
+        // Do nothing
       }
     };
 

@@ -13,17 +13,15 @@ const Lobby = ({ roomData, currentUserId, onLeave, onStart }) => {
 
   const [copied, setCopied] = useState(false);
 
-  // ✅ host input (string pour laisser taper librement)
   const [durationInput, setDurationInput] = useState(String(DEFAULT_DURATION));
 
-  // ✅ valeur validée (utilisée au start)
   const durationSec = useMemo(() => {
     const n = Number(durationInput);
     if (!Number.isFinite(n)) return DEFAULT_DURATION;
     return clamp(Math.floor(n), MIN_DURATION, MAX_DURATION);
   }, [durationInput]);
 
-  // ✅ reset quand on change de room
+  //  reset when changing room
   useEffect(() => {
     setDurationInput(String(DEFAULT_DURATION));
   }, [room.roomId]);
@@ -38,11 +36,11 @@ const Lobby = ({ roomData, currentUserId, onLeave, onStart }) => {
     }
   };
 
-  // ✅ clamp uniquement quand on quitte le champ
+  //  clamp uniquement quand on quitte le champ
   const handleDurationBlur = () => {
     const raw = durationInput;
 
-    // vide -> default
+    // empty -> default
     if (raw === "" || raw == null) {
       setDurationInput(String(DEFAULT_DURATION));
       return;
@@ -56,13 +54,12 @@ const Lobby = ({ roomData, currentUserId, onLeave, onStart }) => {
       return;
     }
 
-    // clamp min/max
     const fixed = clamp(Math.floor(n), MIN_DURATION, MAX_DURATION);
     setDurationInput(String(fixed));
   };
 
   const handleStart = () => {
-    // ✅ on démarre avec la durée validée
+    //  start with validated duration
     onStart?.(durationSec);
   };
 
@@ -87,7 +84,7 @@ const Lobby = ({ roomData, currentUserId, onLeave, onStart }) => {
           <span className={room.status === "WAITING" ? "blink" : ""}>{room.status}</span>
         </div>
 
-        {/* ✅ GAME TIME: host only */}
+        {/*  GAME TIME: host only */}
         {isHost && (
           <div className="time-panel">
             <div className="time-label">GAME TIME</div>

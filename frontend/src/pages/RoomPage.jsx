@@ -37,10 +37,10 @@ const RoomPage = ({ socket, onBack, onJoin }) => {
   useEffect(() => {
     if (!socket) return;
 
-    // ✅ 1) sync initial
+    //  1) sync initial
     fetchRooms();
 
-    // ✅ 2) LIVE updates depuis backend
+    //  2) LIVE updates depuis backend
     const onListUpdate = (payload) => {
       setRooms(payload?.rooms || []);
       setError("");
@@ -52,7 +52,7 @@ const RoomPage = ({ socket, onBack, onJoin }) => {
       pulseTimeoutRef.current = setTimeout(() => setPulse(false), 220);
     };
 
-    // ✅ 3) reconnect => resync
+    //  3) reconnect => resync
     const onConnect = () => fetchRooms();
 
     socket.on("room:list:update", onListUpdate);

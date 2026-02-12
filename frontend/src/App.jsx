@@ -87,7 +87,7 @@ function App() {
     });
   };
 
-  // ✅ NOUVEAU : Gère le clic sur "RESEARCH ROOM"
+  //  Gère le clic sur "RESEARCH ROOM"
   const handleGoToRooms = async (username) => {
     const userData = await authenticateUser(username);
     if (!userData) return;
@@ -100,7 +100,7 @@ function App() {
     setCurrentView('ROOMS');
   };
 
-  // ✅ Modifié : Gère le "JOIN" depuis la RoomPage
+  //  Gère le "JOIN" depuis la RoomPage
   const handleJoinRoomId = (roomId) => {
     if (!socket) return;
     socket.emit("room:join", { roomId }, (ack) => {
@@ -154,11 +154,10 @@ function App() {
       {currentView === 'HOME' && (
         <HomePage 
             onCreate={handleCreate} 
-            onGoRooms={handleGoToRooms} // ✅ Connecté ici
+            onGoRooms={handleGoToRooms} 
         />
       )}
 
-      {/* ✅ NOUVELLE VUE : ROOMS */}
       {currentView === 'ROOMS' && (
         <RoomPage 
             socket={socket}

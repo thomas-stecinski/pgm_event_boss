@@ -6,7 +6,7 @@ const LS_USERNAME_KEY = "scb_username";
 const HomePage = ({ onCreate, onGoRooms }) => {
   const [username, setUsername] = useState("");
 
-  // ✅ restaure le dernier pseudo si présent
+  //  restaure le dernier pseudo si présent
   useEffect(() => {
     const saved = localStorage.getItem(LS_USERNAME_KEY);
     if (saved && saved.trim()) {
@@ -14,7 +14,7 @@ const HomePage = ({ onCreate, onGoRooms }) => {
     }
   }, []);
 
-  // ✅ sauvegarde automatique du dernier pseudo
+  //  sauvegarde automatique du dernier pseudo
   useEffect(() => {
     const clean = (username || "").trim();
 
