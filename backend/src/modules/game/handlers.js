@@ -1,5 +1,6 @@
 const { gameStartSchema, gameClickSchema, gameChoosePowerSchema } = require("./schema");
 const gameRedis = require("./redis");
+const roomRedis = require("../rooms/redis");
 const { calculateDamage, getRandomOffers } = require("./powers");
 
 const roomTimers = new Map();
@@ -103,7 +104,7 @@ function registerGameHandlers(io, socket) {
       await gameRedis.resetClickCounts(roomId);
 
       // Generer 3 pouvoirs aleatoires par joueur et les stocker
-      const players = await gameRedis.getPlayers(roomId);
+      const players = await roomRedis.getPlayers(roomId);
       for (const p of players) {
         const offers = getRandomOffers(3);
         await gameRedis.setPlayerOffers(roomId, p.userId, offers);

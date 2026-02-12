@@ -31,14 +31,6 @@ async function getRoom(roomId) {
   return room && room.roomId ? room : null;
 }
 
-async function getPlayers(roomId) {
-  const map = await redis.hgetall(playersKey(roomId));
-  return Object.entries(map).map(([userId, json]) => {
-    const u = JSON.parse(json);
-    return { userId, name: u.name, team: u.team };
-  });
-}
-
 async function setRoomStatus(roomId, status) {
   await redis.hset(roomKey(roomId), { status });
 }
@@ -159,7 +151,6 @@ async function setRoomChoosingEndsAt(roomId, ts) {
 
 module.exports = {
     getRoom,
-    getPlayers,
     getPlayer,
     setPlayerTeam,
     setRoomStatus,

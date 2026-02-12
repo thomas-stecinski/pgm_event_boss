@@ -17,7 +17,7 @@ async function emitRoomList(io) {
 }
 
 async function assignTeam(roomId, user) {
-  const players = await gameRedis.getPlayers(roomId);
+  const players = await getPlayers(roomId);
   const countA = players.filter((p) => p.team === "A").length;
   const countB = players.filter((p) => p.team === "B").length;
 
@@ -49,7 +49,7 @@ function registerRoomHandlers(io, socket) {
       await emitRoomState(io, roomId);
       await emitRoomList(io);
 
-      ack?.({ ok: true, roomId, room });
+      ack?.({ ok: true, roomId, room});
     } catch (e) {
       ack?.({ ok: false, error: e.message || "CREATE_ROOM_FAILED" });
     }

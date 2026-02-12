@@ -35,11 +35,11 @@ async function getRoom(roomId){
     return room;
 }
 
-async function getPlayers(roomId)  {
+async function getPlayers(roomId){  
     const map = await redis.hgetall(playersKey(roomId));
     return Object.entries(map).map(([userId, json]) => {
         const u = JSON.parse(json);
-        return { userId, name: u.name };
+        return { userId, name: u.name, team: u.team };
     });
 }
 

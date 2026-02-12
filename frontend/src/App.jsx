@@ -79,7 +79,12 @@ function App() {
     if (!userData) return;
     setUser(userData);
     const s = initSocket(userData);
-    s.emit("room:create");
+    s.emit("room:create").on("ack", (ack) => {
+      if (!ack.ok) alert("Erreur création : " + ack.error);
+      else {
+        setRoomData({ room: ack.room, team: ack.team });
+      }
+    });
   };
 
   // ✅ NOUVEAU : Gère le clic sur "RESEARCH ROOM"
@@ -100,6 +105,12 @@ function App() {
     if (!socket) return;
     socket.emit("room:join", { roomId }, (ack) => {
       if (!ack.ok) alert("Impossible de rejoindre : " + ack.error);
+      else {
+        setRoomData((prev) => ({
+          ...prev,
+          team: ack.team,
+        }));
+      }
     });
   };
 
