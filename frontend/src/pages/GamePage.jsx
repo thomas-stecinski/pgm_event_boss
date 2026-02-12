@@ -127,6 +127,7 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
     };
 
     const handleDisconnect = (reason) => {
+        console.log("Socket disconnected:", reason);
       let msg = "Connexion perdue...";
       if (reason === "io server disconnect") msg = "Le serveur a fermé la connexion.";
       if (reason === "transport close") msg = "Le serveur ne répond plus.";
@@ -134,10 +135,12 @@ const GamePage = ({ socket, roomData, currentUser, onBack, initialOffers }) => {
     };
 
     const handleConnectError = () => {
+        console.log("Erreur de connexion au serveur");
       setConnectionError("Impossible de rejoindre le serveur.");
     };
 
     const handleConnect = () => {
+        console.log("Connecté au serveur");
       setConnectionError(null);
       // Au cas où on se reconnecte, on redemande notre team si on l'a perdue
       if (!myTeam && currentUser) {
