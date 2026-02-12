@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import "./GamePage.css";
 import MarioImg from "../assets/Mario.png";
@@ -21,6 +22,7 @@ const POWER_DETAILS = {
 };
 
 const GamePage = () => {
+   const navigate = useNavigate();
   // Utilisation du Context
   const { socket, user, roomData, gameState, error, leaveRoom } = useGame();
   
@@ -110,7 +112,8 @@ const GamePage = () => {
 
   const handleQuit = (e) => {
     e.stopPropagation();
-    leaveRoom(); // Utilise la fonction du context
+    leaveRoom();
+    navigate("/rooms");
   };
 
   // --- COMPUTED ---
@@ -255,7 +258,15 @@ const GamePage = () => {
               <p className="mario-text">MARIO: {finalScores.A}</p>
               <p className="bowser-text">BOWSER: {finalScores.B}</p>
             </div>
-            <button className="retro-btn" onClick={leaveRoom}>HOME</button>
+            <button
+              className="retro-btn"
+              onClick={() => {
+                leaveRoom();
+                navigate("/rooms");
+              }}
+            >
+              HOME
+            </button>
           </div>
         );
       })()}
@@ -267,7 +278,15 @@ const GamePage = () => {
             <h1>ERROR</h1>
             <p className="error-msg">{error}</p>
             <div className="error-loader">Reconnexion en cours...</div>
-            <button className="retro-btn quit-force-btn" onClick={leaveRoom}>ABANDONNER / QUITTER</button>
+            <button
+              className="retro-btn quit-force-btn"
+              onClick={() => {
+                leaveRoom();
+                navigate("/rooms");
+              }}
+            >
+              ABANDONNER / QUITTER
+            </button>
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import "./Lobby.css";
 
@@ -10,6 +11,7 @@ const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
 const Lobby = () => {
   const { roomData, user, socket, leaveRoom } = useGame();
+  const navigate = useNavigate();
   
   // Protection si roomData est null (ne devrait pas arriver grâce à App.jsx)
   if (!roomData) return null;
@@ -41,7 +43,8 @@ const Lobby = () => {
   const handleStart = () => {
     if (!socket) return;
     socket.emit("game:start", { roomId: room.roomId, durationSec }, (ack) => {
-        if (!ack?.ok) alert("Erreur start: " + (ack?.error || "FAILED"));
+      if (!ack?.ok) return alert("Erreur start: " + (ack?.error || "FAILED"));
+      navigate("/game");
     });
   };
 
@@ -71,6 +74,11 @@ const Lobby = () => {
                 step={5}
                 value={durationInput}
                 onChange={(e) => setDurationInput(e.target.value)} 
+                onBlur={() => {
+                  const n = Number(durationInput);
+                  if (!Number.isFinite(n)) return setDurationInput(String(DEFAULT_DURATION));
+                  setDurationInput(String(clamp(Math.floor(n), MIN_DURATION, MAX_DURATION)));
+                }}
               />
               <div className="time-badge">SEC</div>
             </div>
@@ -95,7 +103,13 @@ const Lobby = () => {
               START GAME
             </button>
           )}
-          <button onClick={leaveRoom} className="retro-btn leave-btn">
+          <button
+            onClick={() => {
+              leaveRoom();
+              navigate("/rooms");
+            }}
+            className="retro-btn leave-btn"
+          >
             EXIT ROOM
           </button>
         </div>

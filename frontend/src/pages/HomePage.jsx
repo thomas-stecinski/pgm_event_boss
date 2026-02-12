@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import "./HomePage.css";
 
@@ -6,7 +7,8 @@ const LS_USERNAME_KEY = "scb_username";
 
 const HomePage = () => {
   const [username, setUsername] = useState("");
-  const { login } = useGame(); // Utilisation du context
+  const { login } = useGame();
+  const navigate = useNavigate();
 
   // Restaure le dernier pseudo
   useEffect(() => {
@@ -36,7 +38,8 @@ const HomePage = () => {
     
     // login gère le fetch + la connexion socket + la mise à jour du state
     // App.jsx détectera le changement et affichera RoomPage
-    await login(name); 
+    await login(name);
+    navigate("/rooms");
   };
 
   return (

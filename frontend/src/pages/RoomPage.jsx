@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import "./HomePage.css";
 import "./RoomPage.css";
 
 const RoomPage = () => {
-  // Récupération depuis le context
-  const { socket, user, logout } = useGame();
+  const { socket, logout } = useGame();
+  const navigate = useNavigate();
 
   const [rooms, setRooms] = useState([]);
   const [roomIdInput, setRoomIdInput] = useState("");
@@ -57,15 +58,16 @@ const RoomPage = () => {
     if (!finalId) return;
     
     // On emit join, le context écoutera "room:update" et mettra à jour roomData
-    // ce qui déclenchera le changement de vue dans App.jsx vers Lobby
     socket.emit("room:join", { roomId: finalId }, (ack) => {
-      if (!ack.ok) alert("Impossible de rejoindre : " + ack.error);
+    if (!ack?.ok) return alert("Impossible de rejoindre : " + (ack?.error || "FAILED"));
+    navigate("/lobby");
     });
   };
 
   const handleCreate = () => {
     socket.emit("room:create", {}, (ack) => {
-        if (!ack.ok) alert("Erreur création : " + ack.error);
+    if (!ack?.ok) return alert("Erreur création : " + (ack?.error || "FAILED"));
+    navigate("/lobby");
     });
   };
 
@@ -82,8 +84,10 @@ const RoomPage = () => {
         <h1 className="game-title">RESEARCH<br />ROOMS</h1>
         
         {/* Barre d'action rapide */}
-        <div className="room-grid room-joinbox" style={{marginBottom: '20px'}}>
-             <button className="retro-btn" onClick={handleCreate} style={{width:'100%'}}>+ CREATE NEW ROOM</button>
+        <div className="room-footer-center room-joinbox">
+        <button className="retro-btn room-back-btn" onClick={handleCreate}>
+            + CREATE NEW ROOM
+        </button>
         </div>
 
         <div className="room-subtitle">
@@ -146,9 +150,16 @@ const RoomPage = () => {
         </div>
 
         <div className="room-footer-center">
-          <button type="button" className="retro-btn room-back-btn" onClick={logout}>
+            <button
+            type="button"
+            className="retro-btn room-back-btn"
+            onClick={() => {
+                logout();
+                navigate("/");
+            }}
+            >
             LOGOUT
-          </button>
+            </button>
         </div>
       </div>
     </div>
