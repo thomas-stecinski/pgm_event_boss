@@ -121,13 +121,13 @@ const GamePage = () => {
   const secondsLeft = Math.ceil(timer / 1000);
   const activePowerInfo = POWER_DETAILS[selectedPower] || POWER_DETAILS["default"];
   const percentA = totalScore === 0 ? 50 : (scores.A / totalScore) * 100;
-  const labelA = myTeam === "A" ? "Your team" : "Challenger";
-  const labelB = myTeam === "B" ? "Your team" : "Challenger";
-  const labelClassA = myTeam === "A" ? "your-team" : "challenger";
-  const labelClassB = myTeam === "B" ? "your-team" : "challenger";
+  const labelA = roomData?.team === "A" ? "Your team" : "Challenger";
+  const labelB = roomData?.team === "B" ? "Your team" : "Challenger";
+  const labelClassA = roomData?.team === "A" ? "your-team" : "challenger";
+  const labelClassB = roomData?.team === "B" ? "your-team" : "challenger";
   
   // Logique Danger
-  const isDanger = (myTeam === "A" && scores.B > scores.A) || (myTeam === "B" && scores.A > scores.B);
+  const isDanger = (roomData?.team === "A" && scores.B > scores.A) || (roomData?.team === "B" && scores.A > scores.B);
 
   // Leaderboard
   const leaderboard = Object.entries(playerScores)
@@ -217,8 +217,8 @@ const GamePage = () => {
       {/* OVERLAY CHOOSING */}
       {phase === "CHOOSING" && !error && (
         <div className="overlay choosing-overlay">
-          <div className={`choosing-team-badge ${myTeam === "A" ? "badge-mario" : "badge-bowser"}`}>
-            TEAM {myTeam === "A" ? "MARIO" : myTeam === "B" ? "BOWSER" : "..."}
+          <div className={`choosing-team-badge ${roomData?.team === "A" ? "badge-mario" : "badge-bowser"}`}>
+            TEAM {roomData?.team === "A" ? "MARIO" : roomData?.team === "B" ? "BOWSER" : "..."}
           </div>
           <h2>CHOOSE POWER</h2>
           <div className="cards-container">

@@ -4,13 +4,16 @@ import { io } from "socket.io-client";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
 const STORAGE_KEY = "super_click_session";
 
+const USER_STORAGE_KEY = "super_click_user";
+
 const GameContext = createContext(null);
 
 export const GameProvider = ({ children }) => {
   // --- ÉTATS GLOBAUX ---
   const [socket, setSocket] = useState(null);
   const [user, setUser] = useState(null); // { name, token, userId }
-  const [roomData, setRoomData] = useState(null); // { room, players }
+
+  const [roomData, setRoomData] = useState(null); // { room, players, myTeam }
   
   // État spécifique au jeu
   const [gameState, setGameState] = useState({
@@ -23,7 +26,9 @@ export const GameProvider = ({ children }) => {
     winner: null,
     finalScores: null
   });
-  
+
+  console.log("user,", user);
+
   const [error, setError] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
 
@@ -32,26 +37,27 @@ export const GameProvider = ({ children }) => {
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
   // --- 1. CHARGEMENT INITIAL (Restaurer la session) ---
-  useEffect(() => {
-    const savedSession = sessionStorage.getItem(STORAGE_KEY);
-    if (savedSession) {
-      try {
-        const parsed = JSON.parse(savedSession);
-        console.log("🔄 Restauration session:", parsed);
-        if (parsed.user) setUser(parsed.user);
-        if (parsed.roomData) setRoomData(parsed.roomData);
-        if (parsed.gameState) setGameState(parsed.gameState);
+  // useEffect(() => {
+  //   const savedSession = sessionStorage.getItem(STORAGE_KEY);
+  //   if (savedSession) {
+  //     try {
+  //       const parsed = JSON.parse(savedSession);
+  //       console.log("🔄 Restauration session:", parsed);
+  //       if (parsed.user) setUser(parsed.user);
+  //       console.log("👤 User restauré:", parsed.user);
+  //       if (parsed.roomData) setRoomData(parsed.roomData);
+  //       if (parsed.gameState) setGameState(parsed.gameState);
         
-        // Si on a un token, on reconnecte le socket immédiatement
-        if (parsed.user?.token) {
-          connectSocket(parsed.user.token);
-        }
-      } catch (e) {
-        console.error("Erreur lecture session storage", e);
-        sessionStorage.removeItem(STORAGE_KEY);
-      }
-    }
-  }, []);
+  //       // Si on a un token, on reconnecte le socket immédiatement
+  //       if (parsed.user?.token) {
+  //         connectSocket(parsed.user.token);
+  //       }
+  //     } catch (e) {
+  //       console.error("Erreur lecture session storage", e);
+  //       sessionStorage.removeItem(STORAGE_KEY);
+  //     }
+  //   }
+  // }, []);
 
   // --- 2. SAUVEGARDE AUTOMATIQUE (Persistance) ---
   useEffect(() => {
@@ -101,18 +107,19 @@ export const GameProvider = ({ children }) => {
       }
     });
 
+
     // --- LISTENERS DATA (Mise à jour du Context) ---
 
     // Mise à jour des infos de la room (joueurs, statut)
     newSocket.on("room:update", (data) => {
-      console.log("🏠 Room update:", data);
+      const myInfos = sessionStorage.getItem(USER_STORAGE_KEY);
+
       setRoomData(data);
-      
       // Mise à jour de ma team si dispo dans la liste des joueurs
-      if (user && data.players) {
-        const me = data.players.find(p => p.userId === user.userId);
+      if (myInfos && data.players) {
+        const me = data.players.find(p => p.userId === JSON.parse(myInfos).userId);
         if (me?.team) {
-          setGameState(prev => ({ ...prev, myTeam: me.team }));
+          setRoomData(prev => ({ ...prev, team: me.team }));
         }
       }
     });
@@ -120,6 +127,11 @@ export const GameProvider = ({ children }) => {
     // Début phase CHOOSING
     newSocket.on("game:choosing", (data) => {
       setGameState(prev => ({ ...prev, phase: "CHOOSING" }));
+    });
+
+    newSocket.on("room:deleted", (data) => {
+        alert("La room a été supprimée: " + data.reason);
+        leaveRoom();
     });
 
     // Réception des offres de pouvoirs
@@ -180,6 +192,7 @@ export const GameProvider = ({ children }) => {
       
       const data = await res.json(); // { token, userId, name }
       setUser(data); // Sauvegarde user
+      sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data)); // Sauvegarde user dans sessionStorage
       connectSocket(data.token); // Lance connexion
       return true;
     } catch (e) {

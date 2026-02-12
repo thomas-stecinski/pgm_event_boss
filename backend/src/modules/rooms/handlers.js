@@ -17,6 +17,7 @@ async function emitRoomList(io) {
 }
 
 async function assignTeam(roomId, user) {
+  if(user.team) return user.team;
   const players = await getPlayers(roomId);
   const countA = players.filter((p) => p.team === "A").length;
   const countB = players.filter((p) => p.team === "B").length;
@@ -44,12 +45,12 @@ function registerRoomHandlers(io, socket) {
 
       await socket.join(roomId);
       socket.data.currentRoomId = roomId;
-      socket.emit("game:myTeam", { team });
+      io.emit("game:myTeam", { team });
 
       await emitRoomState(io, roomId);
       await emitRoomList(io);
 
-      ack?.({ ok: true, roomId, room});
+      ack?.({ ok: true, roomId, room, team});
     } catch (e) {
       ack?.({ ok: false, error: e.message || "CREATE_ROOM_FAILED" });
     }
@@ -84,7 +85,7 @@ function registerRoomHandlers(io, socket) {
       await emitRoomState(io, roomId);
       await emitRoomList(io);
 
-      ack?.({ ok: true, roomId });
+      ack?.({ ok: true, roomId, team});
     } catch (e) {
       ack?.({ ok: false, error: e.message || "JOIN_ROOM_FAILED" });
     }
