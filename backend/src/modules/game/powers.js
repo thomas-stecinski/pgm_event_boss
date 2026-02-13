@@ -9,7 +9,7 @@ const POWERS = {
   },
   bombe: {
     name: "Bombe",
-    desc: "Tous les 50 clics, explosion de 65 degats",
+    desc: "Tous les 50 clics, explosion de 75 degats",
   },
   retardement: {
     name: "Retardement",
@@ -25,7 +25,7 @@ const POWERS = {
   },
   apoutchou: {
     name: "Apoutchou",
-    desc: "Plus l'ecart entre 2 clics est grand, plus le clic est fort (+1 par 0,1s)",
+    desc: "Plus l'ecart entre 2 clics est grand, plus le clic est fort (+2 par 0,15s)",
   },
 };
 
@@ -54,7 +54,7 @@ function calculateDamage(powerId, clickCount, gameProgress, lastClickGapMs = 0) 
       return Math.floor(Math.random() * 6); // 0 a 5
 
     case "bombe":
-      return clickCount % 50 === 0 ? 65 : 1;
+      return clickCount % 50 === 0 ? 75 : 1;
 
     case "retardement":
       return gameProgress >= 0.6 ? 4 : 1;
@@ -66,7 +66,7 @@ function calculateDamage(powerId, clickCount, gameProgress, lastClickGapMs = 0) 
       return FURIE_CYCLE[(clickCount - 1) % FURIE_CYCLE.length];
 
     case "apoutchou":
-      return Math.max(1, Math.floor(lastClickGapMs / 100));
+      return Math.max(1, Math.floor(lastClickGapMs / 50));
 
     default:
       return 1;

@@ -15,7 +15,7 @@ import imgApouchou from "../assets/apouchou.webp";
 const POWER_DETAILS = {
   double_impact: { label: "DOUBLE IMPACT", img: imgChampignon, desc: "D\u00e9g\u00e2ts constants x2" },
   rafale_instable: { label: "RAFALE", img: imgCycle, desc: "D\u00e9g\u00e2ts al\u00e9atoires (0-5)" },
-  bombe: { label: "BOMBE", img: imgBombe, desc: "50 clics = BOOM (65 dmg)" },
+  bombe: { label: "BOMBE", img: imgBombe, desc: "50 clics = BOOM (75 dmg)" },
   retardement: { label: "RETARDEMENT", img: imgEtoile, desc: "x4 d\u00e9g\u00e2ts apr\u00e8s 60%" },
   chance_critique: { label: "CRITIQUE", img: imgCarapace, desc: "10% chance de x15" },
   furie_cyclique: { label: "FURIE", img: imgFurie, desc: "Cycle: -1, 0, 1... 5" },
@@ -71,7 +71,7 @@ const GamePage = () => {
     if (powerId === "chance_critique" && damage === 15) {
       el.innerText = "CRIT";
       el.classList.add("crit-effect");
-    } else if (powerId === "bombe" && damage === 65) {
+    } else if (powerId === "bombe" && damage === 75) {
       el.innerText = "BOOM";
       el.classList.add("boom-effect");
     } else {
