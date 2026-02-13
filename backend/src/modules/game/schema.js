@@ -19,6 +19,9 @@ const gameChoosePowerSchema = z.object({
     "chance_critique",
     "furie_cyclique",
     "apoutchou",
+    "all_in",
+    "tanaland",
+    "prince",
   ]),
 });
 

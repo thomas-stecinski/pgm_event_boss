@@ -8,7 +8,7 @@ const authHttpRouter = express.Router();
 
 const PSEUDO_PREFIX = "pseudo:";
 
-// --- Pseudo unique ---
+// Pseudo unique
 
 async function reservePseudo(name, browserId) {
   const key = PSEUDO_PREFIX + name.toLowerCase();
