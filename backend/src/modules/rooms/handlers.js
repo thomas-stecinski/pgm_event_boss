@@ -74,6 +74,13 @@ function registerRoomHandlers(io, socket) {
       const room = await getRoom(roomId);
       if (!room) return ack?.({ ok: false, error: "ROOM_NOT_FOUND" });
 
+      if(room.status == "IN_GAME"){
+        const players = await getPlayers(roomId);
+        if(!players.some(p => p.userId === socket.user.userId)){
+          return ack?.({ ok: false, error: "NOT_YOUR_ROOM" });
+        }
+      }
+
       await addPlayer(roomId, socket.user);
       const team = await assignTeam(roomId, socket.user);
 
