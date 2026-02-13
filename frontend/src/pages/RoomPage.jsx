@@ -1,27 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import "./HomePage.css";
 import "./RoomPage.css";
 
 const RoomPage = () => {
   const { socket, logout } = useGame();
-  const navigate = useNavigate();
 
-  const [rooms, setRooms] = useState([]);
+  const [waitingRooms, setWaitingRooms] = useState([]); 
   const [roomIdInput, setRoomIdInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [pulse, setPulse] = useState(false);
   const pulseTimeoutRef = useRef(null);
 
+  // 1️⃣ On récupère l'ID mémorisé dans le navigateur
+  const lastRoomId = localStorage.getItem("scb_last_room");
+
   // Tri des rooms
-  const sortedRooms = useMemo(() => {
-    return (rooms || [])
-      .filter((r) => r && r.roomId)
-      .filter((r) => r.status === "WAITING")
+  const sortedWaitingRooms = useMemo(() => {
+    return (waitingRooms || [])
       .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
-  }, [rooms]);
+  }, [waitingRooms]);
 
   const fetchRooms = () => {
     if (!socket) return;
@@ -31,9 +30,10 @@ const RoomPage = () => {
     socket.emit("room:list", { onlyWaiting: true }, (ack) => {
       setLoading(false);
       if (ack?.ok) {
-        setRooms(ack.rooms || []);
+        // Le back renvoie { waitingRooms: [], playingRooms: [] }
+        setWaitingRooms(ack.rooms?.waitingRooms || []);
       } else {
-        setError(ack?.error || "LIST_ROOMS_FAILED");
+        setError(ack?.error || "Erreur chargement rooms");
       }
     });
   };
@@ -43,7 +43,7 @@ const RoomPage = () => {
     fetchRooms();
 
     const onListUpdate = (payload) => {
-      setRooms(payload?.rooms || []);
+      setWaitingRooms(payload?.rooms?.waitingRooms || []);
       setPulse(true);
       if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current);
       pulseTimeoutRef.current = setTimeout(() => setPulse(false), 220);
@@ -57,17 +57,15 @@ const RoomPage = () => {
     const finalId = (rid || roomIdInput || "").trim();
     if (!finalId) return;
     
-    // On emit join, le context écoutera "room:update" et mettra à jour roomData
+    // Le serveur va nous ajouter, nous assigner une team et nous envoyer les updates
     socket.emit("room:join", { roomId: finalId }, (ack) => {
-    if (!ack?.ok) return alert("Impossible de rejoindre : " + (ack?.error || "FAILED"));
-    navigate("/lobby");
+      if (!ack.ok) alert("Impossible de rejoindre : " + ack.error);
     });
   };
 
   const handleCreate = () => {
     socket.emit("room:create", {}, (ack) => {
-    if (!ack?.ok) return alert("Erreur création : " + (ack?.error || "FAILED"));
-    navigate("/lobby");
+        if (!ack.ok) alert("Erreur création : " + ack.error);
     });
   };
 
@@ -78,17 +76,44 @@ const RoomPage = () => {
     }
   };
 
+  // 2️⃣ Vérification : est-ce que ma dernière room est déjà dans la liste d'attente ?
+  // Si oui, on ne l'affiche pas deux fois. Si non, on l'affiche en mode "Reconnexion"
+  const showRejoinSection = lastRoomId && !waitingRooms.find(r => r.roomId === lastRoomId);
+
   return (
     <div className="game-container">
       <div className="game-card room-card">
         <h1 className="game-title">RESEARCH<br />ROOMS</h1>
         
-        {/* Barre d'action rapide */}
-        <div className="room-footer-center room-joinbox">
-        <button className="retro-btn room-back-btn" onClick={handleCreate}>
-            + CREATE NEW ROOM
-        </button>
+        <div className="room-grid room-joinbox" style={{marginBottom: '20px'}}>
+             <button className="retro-btn" onClick={handleCreate} style={{width:'100%'}}>+ CREATE NEW ROOM</button>
         </div>
+
+        {/* 3️⃣ SECTION REJOIN : Affiche la room "fantôme" mémorisée */}
+        {showRejoinSection && (
+          <div className="rejoin-section">
+            <div className="room-list-title" style={{color: '#fbd000', marginBottom: '10px'}}>
+              ⚠️ CONNECTION LOST
+            </div>
+            <div className="room-row rejoin-row">
+              <div className="room-left">
+                <div className="room-code">Room ID: {lastRoomId}</div>
+                <div className="room-badges">
+                  {/* On suppose que c'est PLAYING car elle n'est pas dans waitingRooms */}
+                  <span className="room-badge room-badge-rejoin">IN GAME / UNKNOWN</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="retro-btn-go room-join rejoin-btn"
+                onClick={() => handleJoin(lastRoomId)}
+              >
+                RESUME
+              </button>
+            </div>
+            <div className="room-divider"></div>
+          </div>
+        )}
 
         <div className="room-subtitle">
           Join with an ID, or pick a waiting room.
@@ -117,7 +142,7 @@ const RoomPage = () => {
           <div className="room-list-title">
             WAITING ROOMS <span className={`room-live ${pulse ? "pulse" : ""}`}>● LIVE</span>
           </div>
-          <div className="room-count">({sortedRooms.length})</div>
+          <div className="room-count">({sortedWaitingRooms.length})</div>
         </div>
 
         {error && <div className="room-error">{error}</div>}
@@ -125,10 +150,10 @@ const RoomPage = () => {
         <div className="room-list">
           {loading ? (
             <div className="room-empty">LOADING...</div>
-          ) : sortedRooms.length === 0 ? (
+          ) : sortedWaitingRooms.length === 0 ? (
             <div className="room-empty">NO WAITING ROOMS</div>
           ) : (
-            sortedRooms.map((r) => (
+            sortedWaitingRooms.map((r) => (
               <div className="room-row" key={r.roomId}>
                 <div className="room-left">
                   <div className="room-code">Code: {r.roomId}</div>
@@ -150,16 +175,9 @@ const RoomPage = () => {
         </div>
 
         <div className="room-footer-center">
-            <button
-            type="button"
-            className="retro-btn room-back-btn"
-            onClick={() => {
-                logout();
-                navigate("/");
-            }}
-            >
+          <button type="button" className="retro-btn room-back-btn" onClick={logout}>
             LOGOUT
-            </button>
+          </button>
         </div>
       </div>
     </div>

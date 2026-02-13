@@ -3,148 +3,107 @@ import { io } from "socket.io-client";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
 const STORAGE_KEY = "super_click_session";
-
-const USER_STORAGE_KEY = "super_click_user";
+const LAST_ROOM_KEY = "scb_last_room"; // 🔑 Clé pour se souvenir de la room
 
 const GameContext = createContext(null);
 
 export const GameProvider = ({ children }) => {
-  // --- ÉTATS GLOBAUX ---
   const [socket, setSocket] = useState(null);
-  const [user, setUser] = useState(null); // { name, token, userId }
-
-  const [roomData, setRoomData] = useState(null); // { room, players, myTeam }
+  const [user, setUser] = useState(null);
+  const [roomData, setRoomData] = useState(null);
   
-  // État spécifique au jeu
   const [gameState, setGameState] = useState({
-    phase: "IDLE", // IDLE, CHOOSING, PLAYING, ENDED
+    phase: "IDLE",
     scores: { A: 0, B: 0 },
     timer: 0,
     personalScore: 0,
-    offers: [], // Offres de pouvoirs
+    offers: [],
     myTeam: null,
     winner: null,
     finalScores: null
   });
-
-  console.log("user,", user);
-
+  
   const [error, setError] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Ref pour accéder au state actuel dans les listeners socket (évite les problèmes de closure)
+  // Ref pour accès immédiat dans les listeners
   const gameStateRef = useRef(gameState);
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
 
-  // --- 1. CHARGEMENT INITIAL (Restaurer la session) ---
-  // useEffect(() => {
-  //   const savedSession = sessionStorage.getItem(STORAGE_KEY);
-  //   if (savedSession) {
-  //     try {
-  //       const parsed = JSON.parse(savedSession);
-  //       console.log("🔄 Restauration session:", parsed);
-  //       if (parsed.user) setUser(parsed.user);
-  //       console.log("👤 User restauré:", parsed.user);
-  //       if (parsed.roomData) setRoomData(parsed.roomData);
-  //       if (parsed.gameState) setGameState(parsed.gameState);
-        
-  //       // Si on a un token, on reconnecte le socket immédiatement
-  //       if (parsed.user?.token) {
-  //         connectSocket(parsed.user.token);
-  //       }
-  //     } catch (e) {
-  //       console.error("Erreur lecture session storage", e);
-  //       sessionStorage.removeItem(STORAGE_KEY);
-  //     }
-  //   }
-  // }, []);
-
-  // --- 2. SAUVEGARDE AUTOMATIQUE (Persistance) ---
+  // --- 1. CHARGEMENT INITIAL ---
   useEffect(() => {
-    // On ne sauvegarde que les données Serializable (pas le socket)
-    const sessionData = {
-      user,
-      roomData,
-      gameState
-    };
+    const savedSession = sessionStorage.getItem(STORAGE_KEY);
+    if (savedSession) {
+      try {
+        const parsed = JSON.parse(savedSession);
+        if (parsed.user) setUser(parsed.user);
+        // On ne restaure PAS roomData ici car on veut forcer la reconnexion propre via socket
+        if (parsed.user?.token) connectSocket(parsed.user.token);
+      } catch (e) {
+        sessionStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  }, []);
+
+  // --- 2. SAUVEGARDE STATE ---
+  useEffect(() => {
+    const sessionData = { user, roomData, gameState };
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
   }, [user, roomData, gameState]);
 
-  // --- 3. GESTION DU SOCKET ---
+  // --- 3. SOCKET ---
   const connectSocket = (token) => {
-    if (socket) return; // Déjà connecté ou en cours
+    if (socket) return;
 
     const newSocket = io(BACKEND_URL, {
       auth: { token },
-      transports: ["websocket"], // Force websocket pour performance
+      transports: ["websocket"],
       reconnection: true,
     });
 
-    // --- LISTENERS GLOBAUX ---
-
     newSocket.on("connect", () => {
-      console.log("✅ Socket connecté:", newSocket.id);
+      console.log("✅ Socket connecté");
       setIsConnected(true);
       setError(null);
-      
-      // Tentative de rejoindre la room si on en avait une (re-sync après refresh)
-      // Note: Le backend doit gérer la reconnexion automatique via le token, 
-      // ou on peut émettre un event ici si nécessaire.
     });
 
-    newSocket.on("connect_error", (err) => {
-      console.error("❌ Erreur socket:", err.message);
+    newSocket.on("connect_error", () => {
       setIsConnected(false);
-      setError("Connexion au serveur impossible.");
+      setError("Connexion impossible.");
     });
 
     newSocket.on("disconnect", (reason) => {
-      console.warn("⚠️ Déconnecté:", reason);
       setIsConnected(false);
       if (reason === "io server disconnect") {
-        setError("Déconnecté par le serveur.");
-        newSocket.disconnect(); // Empêche reconnexion auto si ban/kick
+        setError("Kicked by server.");
+        newSocket.disconnect();
       }
     });
 
+    // --- LOGIQUE METIER ---
 
-    // --- LISTENERS DATA (Mise à jour du Context) ---
-
-    // Mise à jour des infos de la room (joueurs, statut)
     newSocket.on("room:update", (data) => {
-      const myInfos = sessionStorage.getItem(USER_STORAGE_KEY);
-
       setRoomData(data);
-      // Mise à jour de ma team si dispo dans la liste des joueurs
-      if (myInfos && data.players) {
-        const me = data.players.find(p => p.userId === JSON.parse(myInfos).userId);
-        if (me?.team) {
-          setRoomData(prev => ({ ...prev, team: me.team }));
-        }
+      
+      // 💾 SAUVEGARDE L'ID DE LA ROOM DÈS QU'ON REÇOIT UNE UPDATE
+      if (data.room && data.room.roomId) {
+        localStorage.setItem(LAST_ROOM_KEY, data.room.roomId);
+      }
+
+      // Calcul de la team
+      if (user && data.players) {
+        const me = data.players.find(p => p.userId === user.userId);
+        if (me?.team) setGameState(prev => ({ ...prev, myTeam: me.team }));
       }
     });
 
-    // Début phase CHOOSING
-    newSocket.on("game:choosing", (data) => {
-      setGameState(prev => ({ ...prev, phase: "CHOOSING" }));
-    });
-
-    newSocket.on("room:deleted", (data) => {
-        alert("La room a été supprimée: " + data.reason);
-        leaveRoom();
-    });
-
-    // Réception des offres de pouvoirs
-    newSocket.on("game:offers", (data) => {
-      setGameState(prev => ({ ...prev, offers: data.offers || [] }));
-    });
-
-    // Début phase PLAYING
-    newSocket.on("game:play", () => {
-      setGameState(prev => ({ ...prev, phase: "PLAYING" }));
-    });
-
-    // Timer et phase
+    newSocket.on("game:choosing", () => setGameState(prev => ({ ...prev, phase: "CHOOSING" })));
+    newSocket.on("game:offers", (data) => setGameState(prev => ({ ...prev, offers: data.offers || [] })));
+    newSocket.on("game:play", () => setGameState(prev => ({ ...prev, phase: "PLAYING" })));
+    
+    // ⏱️ C'EST ICI QUE LA MAGIE DU "RESUME" OPÈRE
+    // Si on rejoint une partie en cours, le serveur envoie le timer.
+    // On met à jour la phase immédiatement. App.jsx basculera sur GamePage.
     newSocket.on("game:timer", (data) => {
       setGameState(prev => ({ 
         ...prev, 
@@ -153,17 +112,9 @@ export const GameProvider = ({ children }) => {
       }));
     });
 
-    // Mise à jour des scores d'équipe
-    newSocket.on("game:score:update", (data) => {
-      setGameState(prev => ({ ...prev, scores: data.scores }));
-    });
-
-    // Mise à jour score personnel
-    newSocket.on("game:personalScore:update", (data) => {
-      setGameState(prev => ({ ...prev, personalScore: data.personalScore }));
-    });
-
-    // Fin de partie
+    newSocket.on("game:score:update", (data) => setGameState(prev => ({ ...prev, scores: data.scores })));
+    newSocket.on("game:personalScore:update", (data) => setGameState(prev => ({ ...prev, personalScore: data.personalScore })));
+    
     newSocket.on("game:end", (data) => {
       setGameState(prev => ({ 
         ...prev, 
@@ -171,15 +122,12 @@ export const GameProvider = ({ children }) => {
         winner: data.winner, 
         finalScores: data.scores 
       }));
+      // Partie finie normalement -> on oublie la room
+      localStorage.removeItem(LAST_ROOM_KEY);
     });
-
-    // Note: game:playerClick (animations) est géré localement dans GamePage 
-    // pour éviter de re-render tout le contexte à chaque clic.
 
     setSocket(newSocket);
   };
-
-  // --- ACTIONS ---
 
   const login = async (username) => {
     try {
@@ -189,15 +137,12 @@ export const GameProvider = ({ children }) => {
         body: JSON.stringify({ name: username }),
       });
       if (!res.ok) throw new Error("Erreur auth");
-      
-      const data = await res.json(); // { token, userId, name }
-      setUser(data); // Sauvegarde user
-      sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data)); // Sauvegarde user dans sessionStorage
-      connectSocket(data.token); // Lance connexion
+      const data = await res.json();
+      setUser(data);
+      connectSocket(data.token);
       return true;
     } catch (e) {
-      console.error(e);
-      setError("Erreur d'authentification");
+      setError("Erreur auth");
       return false;
     }
   };
@@ -209,36 +154,23 @@ export const GameProvider = ({ children }) => {
     setRoomData(null);
     setGameState({ phase: "IDLE", scores: {A:0, B:0}, timer: 0, offers: [], personalScore: 0, myTeam: null, winner: null, finalScores: null });
     sessionStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LAST_ROOM_KEY);
   };
   
-  // Helper pour quitter une room proprement
   const leaveRoom = () => {
     if (socket) socket.emit("room:leave");
     setRoomData(null);
     setGameState(prev => ({ ...prev, phase: "IDLE", scores: {A:0, B:0}, timer: 0, personalScore: 0 }));
+    // 👋 Départ volontaire -> on supprime la clé de reconnexion
+    localStorage.removeItem(LAST_ROOM_KEY);
   };
 
-  // --- VALEUR DU CONTEXT ---
   const value = {
-    socket,
-    user,
-    roomData,
-    gameState,
-    error,
-    isConnected,
-    login,
-    logout,
-    leaveRoom,
-    // On expose setGameState si besoin ponctuel
-    setGameState
+    socket, user, roomData, gameState, error, isConnected,
+    login, logout, leaveRoom, setGameState
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };
 
-// Hook personnalisé pour utiliser le context facilement
-export const useGame = () => {
-  const context = useContext(GameContext);
-  if (!context) throw new Error("useGame must be used within GameProvider");
-  return context;
-};
+export const useGame = () => useContext(GameContext);

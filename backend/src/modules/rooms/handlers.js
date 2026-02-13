@@ -11,8 +11,8 @@ function emitRoomState(io, roomId) {
   })();
 }
 
-async function emitRoomList(io) {
-  const rooms = await getAllRooms();
+async function emitRoomList(io, userId = null) {
+  const rooms = await getAllRooms({}, userId);
   io.emit("room:list:update", { rooms });
 }
 
@@ -48,7 +48,7 @@ function registerRoomHandlers(io, socket) {
       io.emit("game:myTeam", { team });
 
       await emitRoomState(io, roomId);
-      await emitRoomList(io);
+      await emitRoomList(io, socket.user?.userId);
 
       ack?.({ ok: true, roomId, room, team});
     } catch (e) {
@@ -58,7 +58,7 @@ function registerRoomHandlers(io, socket) {
     socket.on("room:list", async (payload, ack) => {
     try {
       const { onlyWaiting } = payload ?? {};
-      const rooms = await getAllRooms({ onlyWaiting });
+      const rooms = await getAllRooms({ onlyWaiting }, socket.user?.userId);
 
       ack?.({ ok: true, rooms });
     } catch (e) {
@@ -74,6 +74,13 @@ function registerRoomHandlers(io, socket) {
       const room = await getRoom(roomId);
       if (!room) return ack?.({ ok: false, error: "ROOM_NOT_FOUND" });
 
+      if(room.status == "IN_GAME"){
+        const players = await getPlayers(roomId);
+        if(!players.some(p => p.userId === socket.user.userId)){
+          return ack?.({ ok: false, error: "NOT_YOUR_ROOM" });
+        }
+      }
+
       await addPlayer(roomId, socket.user);
       const team = await assignTeam(roomId, socket.user);
 
@@ -83,7 +90,7 @@ function registerRoomHandlers(io, socket) {
       socket.emit("game:myTeam", { team });
 
       await emitRoomState(io, roomId);
-      await emitRoomList(io);
+      await emitRoomList(io, socket.user?.userId);
 
       ack?.({ ok: true, roomId, team});
     } catch (e) {
@@ -115,7 +122,7 @@ function registerRoomHandlers(io, socket) {
         }
       }
 
-      await emitRoomList(io);
+      await emitRoomList(io, socket.user?.userId);
 
       ack?.({ ok: true });
     } catch (e) {
@@ -144,7 +151,7 @@ function registerRoomHandlers(io, socket) {
       }
     }
 
-    await emitRoomList(io);
+    await emitRoomList(io, socket.user?.userId);
   });
 }
 
