@@ -11,6 +11,9 @@ import imgEtoile from "../assets/etoile-mario.webp";
 import imgCarapace from "../assets/carapace-bleu.webp";
 import imgFurie from "../assets/furie-mario.webp";
 import imgApouchou from "../assets/apouchou.webp";
+import imgAllIn from "../assets/all-in-mario.png";
+import imgTanaland from "../assets/tanaland-mario.png";
+import imgPrince from "../assets/prince-mario.jpg";
 
 const POWER_DETAILS = {
   double_impact: { label: "DOUBLE IMPACT", img: imgChampignon, desc: "D\u00e9g\u00e2ts constants x2" },
@@ -20,6 +23,9 @@ const POWER_DETAILS = {
   chance_critique: { label: "CRITIQUE", img: imgCarapace, desc: "10% chance de x15" },
   furie_cyclique: { label: "FURIE", img: imgFurie, desc: "Cycle: -1, 0, 1... 5" },
   apoutchou: { label: "APOUTCHOU", img: imgApouchou, desc: "+1 dmg par 0.1s d'attente" },
+  all_in: { label: "ALL IN", img: imgAllIn, desc: "0.5 pts/clic, 1% chance 5000 pts" },
+  tanaland: { label: "TANALAND", img: imgTanaland, desc: "+1 dmg tous les 69 clics" },
+  prince: { label: "PRINCE", img: imgPrince, desc: "+40 pts auto toutes les 5s" },
   default: { label: "NORMAL", img: null, desc: "D\u00e9g\u00e2ts classiques" }
 };
 
@@ -62,13 +68,19 @@ const GamePage = () => {
     setTimeout(() => el.remove(), 500);
   };
 
-  const createClickEffect = (x, y, damage, powerId) => {
+  const createClickEffect = (x, y, damage, powerId, clickCount) => {
     const el = document.createElement("div");
     el.className = "click-feedback";
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
 
-    if (powerId === "chance_critique" && damage === 15) {
+    if (powerId === "all_in" && damage === 5000) {
+      el.innerText = "JACKPOT";
+      el.classList.add("jackpot-effect");
+    } else if (powerId === "tanaland" && clickCount > 0 && clickCount % 69 === 0) {
+      el.innerText = "KISS";
+      el.classList.add("kiss-effect");
+    } else if (powerId === "chance_critique" && damage === 15) {
       el.innerText = "CRIT";
       el.classList.add("crit-effect");
     } else if (powerId === "bombe" && damage === 75) {
@@ -106,6 +118,28 @@ const GamePage = () => {
     return () => socket.off("game:playerClick", handlePlayerClick);
   }, [socket, user]);
 
+  // Listener pour le pouvoir PRINCE (IMPOT toutes les 5s)
+  const [showImpot, setShowImpot] = useState(false);
+  useEffect(() => {
+    if (!socket) return;
+    const handleImpot = () => {
+      // Affiche l'image prince + texte IMPOT au centre
+      setShowImpot(true);
+      setTimeout(() => setShowImpot(false), 1200);
+
+      // Texte flottant IMPOT +40
+      const el = document.createElement("div");
+      el.className = "click-feedback impot-effect";
+      el.style.left = `${window.innerWidth / 2}px`;
+      el.style.top = `${window.innerHeight / 2 + 80}px`;
+      el.innerText = "IMPOT +40";
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1200);
+    };
+    socket.on("game:princeImpot", handleImpot);
+    return () => socket.off("game:princeImpot", handleImpot);
+  }, [socket]);
+
   const handleChoosePower = (powerId) => {
     if (error) return;
     socket.emit("game:choosePower", { roomId: roomData.room.roomId, powerId }, (ack) => {
@@ -120,7 +154,7 @@ const GamePage = () => {
     if (phase !== "PLAYING" || error) return;
     socket.emit("game:click", { roomId: roomData.room.roomId }, (ack) => {
       if (ack?.ok) {
-        createClickEffect(e.clientX, e.clientY, ack.damage, ack.powerId);
+        createClickEffect(e.clientX, e.clientY, ack.damage, ack.powerId, ack.clickCount);
         lastClickRef.current = Date.now();
       }
     });
@@ -233,6 +267,14 @@ const GamePage = () => {
               })}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* PRINCE IMPOT - image au centre */}
+      {showImpot && (
+        <div className="prince-impot-overlay">
+          <img src={imgPrince} alt="PRINCE" className="prince-impot-img" />
+          <div className="prince-impot-label">IMPOT</div>
         </div>
       )}
 

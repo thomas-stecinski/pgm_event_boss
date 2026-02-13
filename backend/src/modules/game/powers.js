@@ -27,6 +27,18 @@ const POWERS = {
     name: "Apoutchou",
     desc: "Plus l'ecart entre 2 clics est grand, plus le clic est fort (+2 par 0,1s)",
   },
+  all_in: {
+    name: "All In",
+    desc: "1 clic = 0.5 pts en moyenne, 1% chance de 5000 pts d'un coup",
+  },
+  tanaland: {
+    name: "Tanaland",
+    desc: "Tous les 69 clics, +1 degat permanent au clic",
+  },
+  prince: {
+    name: "Prince",
+    desc: "Gagne 40 pts automatiquement toutes les 5s (vole aux pauvres)",
+  },
 };
 
 const POWER_IDS = Object.keys(POWERS);
@@ -67,6 +79,16 @@ function calculateDamage(powerId, clickCount, gameProgress, lastClickGapMs = 0) 
 
     case "apoutchou":
       return Math.max(2, Math.floor(lastClickGapMs / 50));
+
+    case "all_in":
+      if (Math.random() < 0.01) return 5000;
+      return clickCount % 2 === 0 ? 1 : 0; // moyenne 0.5 pts
+
+    case "tanaland":
+      return 1 + Math.floor(clickCount / 69); // +1 degat tous les 69 clics
+
+    case "prince":
+      return 1; // clic normal, le passif est gere par le timer
 
     default:
       return 1;
