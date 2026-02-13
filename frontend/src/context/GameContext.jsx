@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
 const STORAGE_KEY = "super_click_session";
+<<<<<<< HEAD
 const LAST_ROOM_KEY = "scb_last_room"; // 🔑 Clé pour se souvenir de la room
 const BROWSER_ID_KEY = "scb_browser_id";
 
@@ -14,6 +15,8 @@ function getBrowserId() {
   }
   return id;
 }
+=======
+>>>>>>> 46b4436 (mise a jour mecanique de reconnexion)
 
 const GameContext = createContext(null);
 
@@ -36,18 +39,13 @@ export const GameProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Ref pour accès immédiat dans les listeners
-  const gameStateRef = useRef(gameState);
-  useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
-
-  // --- 1. CHARGEMENT INITIAL ---
+  // Restauration Session
   useEffect(() => {
     const savedSession = sessionStorage.getItem(STORAGE_KEY);
     if (savedSession) {
       try {
         const parsed = JSON.parse(savedSession);
         if (parsed.user) setUser(parsed.user);
-        // On ne restaure PAS roomData ici car on veut forcer la reconnexion propre via socket
         if (parsed.user?.token) connectSocket(parsed.user.token);
       } catch (e) {
         sessionStorage.removeItem(STORAGE_KEY);
@@ -55,13 +53,11 @@ export const GameProvider = ({ children }) => {
     }
   }, []);
 
-  // --- 2. SAUVEGARDE STATE ---
+  // Sauvegarde Session (User uniquement)
   useEffect(() => {
-    const sessionData = { user, roomData, gameState };
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
-  }, [user, roomData, gameState]);
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ user }));
+  }, [user]);
 
-  // --- 3. SOCKET ---
   const connectSocket = (token) => {
     if (socket) return;
 
@@ -90,30 +86,33 @@ export const GameProvider = ({ children }) => {
       }
     });
 
-    // --- LOGIQUE METIER ---
+    // --- EVENTS JEU ---
 
     newSocket.on("room:update", (data) => {
       setRoomData(data);
-      
-      // 💾 SAUVEGARDE L'ID DE LA ROOM DÈS QU'ON REÇOIT UNE UPDATE
-      if (data.room && data.room.roomId) {
-        localStorage.setItem(LAST_ROOM_KEY, data.room.roomId);
-      }
-
-      // Calcul de la team
+      // Calcul team local si nécessaire
       if (user && data.players) {
         const me = data.players.find(p => p.userId === user.userId);
         if (me?.team) setGameState(prev => ({ ...prev, myTeam: me.team }));
       }
     });
 
+    newSocket.on("room:deleted", () => {
+      alert("La room a été fermée par l'hôte.");
+      setRoomData(null);
+      setGameState(prev => ({ ...prev, phase: "IDLE" }));
+    });
+
+    // L'event clé pour l'assignation rapide
+    newSocket.on("game:myTeam", (data) => {
+      setGameState(prev => ({ ...prev, myTeam: data.team }));
+    });
+
     newSocket.on("game:choosing", () => setGameState(prev => ({ ...prev, phase: "CHOOSING" })));
     newSocket.on("game:offers", (data) => setGameState(prev => ({ ...prev, offers: data.offers || [] })));
     newSocket.on("game:play", () => setGameState(prev => ({ ...prev, phase: "PLAYING" })));
     
-    // ⏱️ C'EST ICI QUE LA MAGIE DU "RESUME" OPÈRE
-    // Si on rejoint une partie en cours, le serveur envoie le timer.
-    // On met à jour la phase immédiatement. App.jsx basculera sur GamePage.
+    // Si on rejoint en cours de route, le timer nous remet en phase de jeu
     newSocket.on("game:timer", (data) => {
       setGameState(prev => ({ 
         ...prev, 
@@ -132,8 +131,6 @@ export const GameProvider = ({ children }) => {
         winner: data.winner, 
         finalScores: data.scores 
       }));
-      // Partie finie normalement -> on oublie la room
-      localStorage.removeItem(LAST_ROOM_KEY);
     });
 
     setSocket(newSocket);
@@ -156,7 +153,7 @@ export const GameProvider = ({ children }) => {
       connectSocket(data.token);
       return true;
     } catch (e) {
-      setError("Erreur auth");
+      setError("Erreur Auth");
       return false;
     }
   };
@@ -166,17 +163,13 @@ export const GameProvider = ({ children }) => {
     setSocket(null);
     setUser(null);
     setRoomData(null);
-    setGameState({ phase: "IDLE", scores: {A:0, B:0}, timer: 0, offers: [], personalScore: 0, myTeam: null, winner: null, finalScores: null });
     sessionStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(LAST_ROOM_KEY);
   };
   
   const leaveRoom = () => {
     if (socket) socket.emit("room:leave");
     setRoomData(null);
-    setGameState(prev => ({ ...prev, phase: "IDLE", scores: {A:0, B:0}, timer: 0, personalScore: 0 }));
-    // 👋 Départ volontaire -> on supprime la clé de reconnexion
-    localStorage.removeItem(LAST_ROOM_KEY);
+    setGameState(prev => ({ ...prev, phase: "IDLE", scores: {A:0, B:0}, timer: 0 }));
   };
 
   const value = {
