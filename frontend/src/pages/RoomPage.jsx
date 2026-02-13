@@ -6,14 +6,15 @@ import "./RoomPage.css";
 const RoomPage = () => {
   const { socket, logout } = useGame();
 
-  const [waitingRooms, setWaitingRooms] = useState([]);
-  const [playingRooms, setPlayingRooms] = useState([]); // 🆕 Liste des parties en cours où je suis
-  
+  const [waitingRooms, setWaitingRooms] = useState([]); 
   const [roomIdInput, setRoomIdInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [pulse, setPulse] = useState(false);
   const pulseTimeoutRef = useRef(null);
+
+  // 1️⃣ On récupère l'ID mémorisé dans le navigateur
+  const lastRoomId = localStorage.getItem("scb_last_room");
 
   // Tri des rooms
   const sortedWaitingRooms = useMemo(() => {
@@ -21,36 +22,28 @@ const RoomPage = () => {
       .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
   }, [waitingRooms]);
 
-  // Fonction pour récupérer les listes au chargement
   const fetchRooms = () => {
     if (!socket) return;
     setLoading(true);
     setError("");
 
-    // On demande toutes les rooms (le back va filtrer playingRooms pour mon userId)
-    socket.emit("room:list", { onlyWaiting: false }, (ack) => {
+    socket.emit("room:list", { onlyWaiting: true }, (ack) => {
       setLoading(false);
       if (ack?.ok) {
-        // Le backend renvoie maintenant { waitingRooms, playingRooms }
+        // Le back renvoie { waitingRooms: [], playingRooms: [] }
         setWaitingRooms(ack.rooms?.waitingRooms || []);
-        setPlayingRooms(ack.rooms?.playingRooms || []);
       } else {
         setError(ack?.error || "Erreur chargement rooms");
       }
     });
   };
 
-  // Listeners Socket
   useEffect(() => {
     if (!socket) return;
     fetchRooms();
 
     const onListUpdate = (payload) => {
-      // Mise à jour en temps réel des deux listes
       setWaitingRooms(payload?.rooms?.waitingRooms || []);
-      setPlayingRooms(payload?.rooms?.playingRooms || []);
-      
-      // Petit effet visuel "Live"
       setPulse(true);
       if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current);
       pulseTimeoutRef.current = setTimeout(() => setPulse(false), 220);
@@ -64,15 +57,9 @@ const RoomPage = () => {
     const finalId = (rid || roomIdInput || "").trim();
     if (!finalId) return;
     
+    // Le serveur va nous ajouter, nous assigner une team et nous envoyer les updates
     socket.emit("room:join", { roomId: finalId }, (ack) => {
-      if (!ack.ok) {
-        if (ack.error === "NOT_YOUR_ROOM") {
-           alert("Cette partie est en cours et vous n'êtes pas sur la liste des joueurs.");
-        } else {
-           alert("Impossible de rejoindre : " + ack.error);
-        }
-      }
-      // Si OK, le GameContext gérera la transition via "game:myTeam" ou "room:update"
+      if (!ack.ok) alert("Impossible de rejoindre : " + ack.error);
     });
   };
 
@@ -89,6 +76,10 @@ const RoomPage = () => {
     }
   };
 
+  // 2️⃣ Vérification : est-ce que ma dernière room est déjà dans la liste d'attente ?
+  // Si oui, on ne l'affiche pas deux fois. Si non, on l'affiche en mode "Reconnexion"
+  const showRejoinSection = lastRoomId && !waitingRooms.find(r => r.roomId === lastRoomId);
+
   return (
     <div className="game-container">
       <div className="game-card room-card">
@@ -98,31 +89,28 @@ const RoomPage = () => {
              <button className="retro-btn" onClick={handleCreate} style={{width:'100%'}}>+ CREATE NEW ROOM</button>
         </div>
 
-        {/* 🆕 SECTION : MES PARTIES EN COURS (REJOIN) */}
-        {playingRooms.length > 0 && (
+        {/* 3️⃣ SECTION REJOIN : Affiche la room "fantôme" mémorisée */}
+        {showRejoinSection && (
           <div className="rejoin-section">
             <div className="room-list-title" style={{color: '#fbd000', marginBottom: '10px'}}>
-              ⚠️ YOUR ACTIVE GAMES
+              ⚠️ CONNECTION LOST
             </div>
-            
-            {playingRooms.map(r => (
-               <div className="room-row rejoin-row" key={r.roomId}>
-                <div className="room-left">
-                  <div className="room-code">Room: {r.roomId}</div>
-                  <div className="room-badges">
-                    <span className="room-badge">{r.playersCount} PLAYERS</span>
-                    <span className="room-badge room-badge-rejoin">IN GAME</span>
-                  </div>
+            <div className="room-row rejoin-row">
+              <div className="room-left">
+                <div className="room-code">Room ID: {lastRoomId}</div>
+                <div className="room-badges">
+                  {/* On suppose que c'est PLAYING car elle n'est pas dans waitingRooms */}
+                  <span className="room-badge room-badge-rejoin">IN GAME / UNKNOWN</span>
                 </div>
-                <button
-                  type="button"
-                  className="retro-btn-go room-join rejoin-btn"
-                  onClick={() => handleJoin(r.roomId)}
-                >
-                  RESUME
-                </button>
               </div>
-            ))}
+              <button
+                type="button"
+                className="retro-btn-go room-join rejoin-btn"
+                onClick={() => handleJoin(lastRoomId)}
+              >
+                RESUME
+              </button>
+            </div>
             <div className="room-divider"></div>
           </div>
         )}
@@ -135,7 +123,7 @@ const RoomPage = () => {
           <input
             type="text"
             className="retro-input"
-            placeholder="ROOM ID"
+            placeholder="ROOM ID (ex: Xk29aB)"
             value={roomIdInput}
             onChange={(e) => setRoomIdInput(e.target.value)}
             onKeyDown={onEnter}
