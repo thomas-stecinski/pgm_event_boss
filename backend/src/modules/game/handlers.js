@@ -210,9 +210,9 @@ function registerGameHandlers(io, socket) {
       if (!player) return ack?.({ ok: false, error: "PLAYER_NOT_IN_ROOM" });
       if (!player.team) return ack?.({ ok: false, error: "PLAYER_NO_TEAM" });
 
-      // Rate limit : max 1 clic toutes les 50ms
+      // Rate limit : max 1 clic toutes les 48ms
       const last = await gameRedis.getLastClickTs(roomId, socket.user.userId);
-      if (last && now - last < 50) {
+      if (last && now - last < 48) {
         return ack?.({ ok: false, error: "RATE_LIMIT" });
       }
       await gameRedis.setLastClickTs(roomId, socket.user.userId, now);
