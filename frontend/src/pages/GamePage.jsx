@@ -27,7 +27,7 @@ const GamePage = () => {
   const { socket, user, roomData, gameState, error, leaveRoom } = useGame();
   
   // Déstructuration des données du state global
-  const { phase, scores, timer, personalScore, offers, myTeam, winner, finalScores } = gameState;
+  const { phase, scores, timer, personalScore, offers, winner, finalScores } = gameState;
 
   // États locaux (UI only)
   const [selectedPower, setSelectedPower] = useState("double_impact");
@@ -247,7 +247,7 @@ const GamePage = () => {
 
       {/* OVERLAY ENDED */}
       {phase === "ENDED" && finalScores && !error && (() => {
-        const iWon = winner === myTeam;
+        const iWon = winner === roomData?.team;
         const isDraw = winner === "DRAW";
         const winnerTeamName = winner === "A" ? "MARIO" : "BOWSER";
         return (
