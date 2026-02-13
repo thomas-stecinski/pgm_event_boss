@@ -9,19 +9,7 @@ function playersKey(roomId){
 }
 
 const ROOMS_INDEX = "rooms:index";
-const PSEUDO_PREFIX = "pseudo:";
 
-// --- Pseudo unique ---
-
-async function reservePseudo(name, userId) {
-  const key = PSEUDO_PREFIX + name.toLowerCase();
-  const existing = await redis.get(key);
-  if (existing && existing !== userId) {
-    return false; // pseudo déjà utilisé
-  }
-  await redis.set(key, userId, "EX", 2592000); // 30 jours
-  return true;
-}
 
 async function createRoom ({ roomId, hostUser }) {
     const room = {
@@ -118,6 +106,5 @@ module.exports = {
   addPlayer,
   removePlayer,
   deleteRoom,
-  getAllRooms,
-  reservePseudo
+  getAllRooms
 };

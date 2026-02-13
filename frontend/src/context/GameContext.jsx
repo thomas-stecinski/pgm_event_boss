@@ -4,6 +4,16 @@ import { io } from "socket.io-client";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
 const STORAGE_KEY = "super_click_session";
 const LAST_ROOM_KEY = "scb_last_room"; // 🔑 Clé pour se souvenir de la room
+const BROWSER_ID_KEY = "scb_browser_id";
+
+function getBrowserId() {
+  let id = localStorage.getItem(BROWSER_ID_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(BROWSER_ID_KEY, id);
+  }
+  return id;
+}
 
 const GameContext = createContext(null);
 
@@ -134,8 +144,12 @@ export const GameProvider = ({ children }) => {
       const res = await fetch(`${BACKEND_URL}/auth/token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: username }),
+        body: JSON.stringify({ name: username, browserId: getBrowserId() }),
       });
+      if (res.status === 409) {
+        alert("Pseudo déjà utilisé")
+        return false;
+      }
       if (!res.ok) throw new Error("Erreur auth");
       const data = await res.json();
       setUser(data);
