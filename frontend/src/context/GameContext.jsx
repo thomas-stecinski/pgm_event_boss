@@ -3,8 +3,6 @@ import { io } from "socket.io-client";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
 const STORAGE_KEY = "super_click_session";
-
-const LAST_ROOM_KEY = "scb_last_room"; // 🔑 Clé pour se souvenir de la room
 const BROWSER_ID_KEY = "scb_browser_id";
 
 function getBrowserId() {
