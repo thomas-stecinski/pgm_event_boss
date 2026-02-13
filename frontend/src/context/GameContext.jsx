@@ -97,7 +97,7 @@ export const GameProvider = ({ children }) => {
 
     // L'event clé pour l'assignation rapide
     newSocket.on("game:myTeam", (data) => {
-      setRoomData(prev => ({ ...prev, myTeam: data.team }));
+      setRoomData(prev => ({ ...prev, team: data.team }));
     });
 
     // --- LOGIQUE METIER ---
