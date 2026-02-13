@@ -9,6 +9,7 @@ const MAX_DURATION = 300;
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
+
 const Lobby = () => {
   const { roomData, user, socket, leaveRoom } = useGame();
   const navigate = useNavigate();
@@ -17,7 +18,9 @@ const Lobby = () => {
   if (!roomData) return null;
 
   const { room, players } = roomData;
-  const isHost = room.hostUserId === user.userId;
+
+  console.log("Render Lobby", { room, players });
+  const isHost = room?.hostUserId === user?.userId;
 
   const [copied, setCopied] = useState(false);
   const [durationInput, setDurationInput] = useState(String(DEFAULT_DURATION));
@@ -48,6 +51,7 @@ const Lobby = () => {
     });
   };
 
+  if (!roomData?.room || !user) return null;
   return (
     <div className="game-container">
       <div className="lobby-card">

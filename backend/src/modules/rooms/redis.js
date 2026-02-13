@@ -66,7 +66,7 @@ async function deleteRoom(roomId) {
 async function getAllRooms ({ onlyWaiting = false} = {}, userId = null) {
     const roomIds = await redis.smembers(ROOMS_INDEX);
 
-     if (!roomIds.length) return [];
+if (!roomIds.length) return { waitingRooms: [], playingRooms: [] };
 
   const rooms = await Promise.all(
     roomIds.map(async (roomId) => {

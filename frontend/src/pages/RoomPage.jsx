@@ -12,9 +12,8 @@ const RoomPage = () => {
   const [error, setError] = useState("");
   const [pulse, setPulse] = useState(false);
   const pulseTimeoutRef = useRef(null);
+  const [playingRooms, setPlayingRooms] = useState([]);
 
-  // 1️⃣ On récupère l'ID mémorisé dans le navigateur
-  const lastRoomId = localStorage.getItem("scb_last_room");
 
   // Tri des rooms
   const sortedWaitingRooms = useMemo(() => {
@@ -32,6 +31,7 @@ const RoomPage = () => {
       if (ack?.ok) {
         // Le back renvoie { waitingRooms: [], playingRooms: [] }
         setWaitingRooms(ack.rooms?.waitingRooms || []);
+        setPlayingRooms(ack.rooms?.playingRooms || []);
       } else {
         setError(ack?.error || "Erreur chargement rooms");
       }
@@ -44,6 +44,7 @@ const RoomPage = () => {
 
     const onListUpdate = (payload) => {
       setWaitingRooms(payload?.rooms?.waitingRooms || []);
+      setPlayingRooms(payload?.rooms?.playingRooms || []);
       setPulse(true);
       if (pulseTimeoutRef.current) clearTimeout(pulseTimeoutRef.current);
       pulseTimeoutRef.current = setTimeout(() => setPulse(false), 220);
@@ -59,7 +60,13 @@ const RoomPage = () => {
     
     // Le serveur va nous ajouter, nous assigner une team et nous envoyer les updates
     socket.emit("room:join", { roomId: finalId }, (ack) => {
-      if (!ack.ok) alert("Impossible de rejoindre : " + ack.error);
+    if (!ack.ok) {
+        if (ack.error === "NOT_YOUR_ROOM") {
+           alert("Cette partie est en cours et vous n'êtes pas sur la liste des joueurs.");
+        } else {
+           alert("Impossible de rejoindre : " + ack.error);
+        }
+      }
     });
   };
 
@@ -78,7 +85,6 @@ const RoomPage = () => {
 
   // 2️⃣ Vérification : est-ce que ma dernière room est déjà dans la liste d'attente ?
   // Si oui, on ne l'affiche pas deux fois. Si non, on l'affiche en mode "Reconnexion"
-  const showRejoinSection = lastRoomId && !waitingRooms.find(r => r.roomId === lastRoomId);
 
   return (
     <div className="game-container">
@@ -89,11 +95,11 @@ const RoomPage = () => {
              <button className="retro-btn" onClick={handleCreate} style={{width:'100%'}}>+ CREATE NEW ROOM</button>
         </div>
 
-        {/* 3️⃣ SECTION REJOIN : Affiche la room "fantôme" mémorisée */}
-        {showRejoinSection && (
+        {/* 🆕 SECTION : MES PARTIES EN COURS (REJOIN) */}
+        {playingRooms.length > 0 && (
           <div className="rejoin-section">
             <div className="room-list-title" style={{color: '#fbd000', marginBottom: '10px'}}>
-              ⚠️ CONNECTION LOST
+              ⚠️ YOUR ACTIVE GAMES
             </div>
             <div className="room-row rejoin-row">
               <div className="room-left">
