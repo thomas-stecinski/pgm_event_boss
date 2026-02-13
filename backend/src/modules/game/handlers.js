@@ -232,8 +232,12 @@ function registerGameHandlers(io, socket) {
       const elapsed = now - choosingEndsAt;
       const gameProgress = Math.min(1, elapsed / gameDuration);
 
+      // Ecart depuis le dernier clic (pour Apoutchou)
+      // Premier clic : ecart depuis le debut de la phase PLAYING
+      const lastClickGapMs = last ? (now - last) : (now - choosingEndsAt);
+
       // Calcul des degats cote serveur
-      const damage = calculateDamage(powerId, clickCount, gameProgress);
+      const damage = calculateDamage(powerId, clickCount, gameProgress, lastClickGapMs);
 
       // Appliquer les degats
       const newPersonalScore = await gameRedis.incrPlayerScore(roomId, socket.user.userId, damage);

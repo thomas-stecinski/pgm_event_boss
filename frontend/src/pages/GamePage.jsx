@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import "./GamePage.css";
@@ -10,6 +10,7 @@ import imgBombe from "../assets/bombe-mario.jpg";
 import imgEtoile from "../assets/etoile-mario.webp";
 import imgCarapace from "../assets/carapace-bleu.webp";
 import imgFurie from "../assets/furie-mario.webp";
+import imgApouchou from "../assets/apouchou.webp";
 
 const POWER_DETAILS = {
   double_impact: { label: "DOUBLE IMPACT", img: imgChampignon, desc: "D\u00e9g\u00e2ts constants x2" },
@@ -18,6 +19,7 @@ const POWER_DETAILS = {
   retardement: { label: "RETARDEMENT", img: imgEtoile, desc: "x4 d\u00e9g\u00e2ts apr\u00e8s 60%" },
   chance_critique: { label: "CRITIQUE", img: imgCarapace, desc: "10% chance de x15" },
   furie_cyclique: { label: "FURIE", img: imgFurie, desc: "Cycle: -1, 0, 1... 5" },
+  apoutchou: { label: "APOUTCHOU", img: imgApouchou, desc: "+1 dmg par 0.1s d'attente" },
   default: { label: "NORMAL", img: null, desc: "D\u00e9g\u00e2ts classiques" }
 };
 
@@ -33,6 +35,19 @@ const GamePage = () => {
   const [selectedPower, setSelectedPower] = useState("double_impact");
   const [hasChosen, setHasChosen] = useState(false);
   const [playerScores, setPlayerScores] = useState({}); // Leaderboard local animé
+  const lastClickRef = useRef(null);
+  const [clickGap, setClickGap] = useState(0);
+
+  // Chrono entre clics (Apoutchou uniquement)
+  const isApoutchou = phase === "PLAYING" && selectedPower === "apoutchou";
+  useEffect(() => {
+    if (!isApoutchou) return;
+    if (!lastClickRef.current) lastClickRef.current = Date.now();
+    const id = setInterval(() => {
+      setClickGap(Date.now() - lastClickRef.current);
+    }, 50);
+    return () => clearInterval(id);
+  }, [isApoutchou]);
 
   // Gestion des animations de clics (Effets visuels uniquement)
   const createOtherPlayerClickEffect = (damage, team) => {
@@ -106,6 +121,7 @@ const GamePage = () => {
     socket.emit("game:click", { roomId: roomData.room.roomId }, (ack) => {
       if (ack?.ok) {
         createClickEffect(e.clientX, e.clientY, ack.damage, ack.powerId);
+        lastClickRef.current = Date.now();
       }
     });
   };
@@ -186,6 +202,12 @@ const GamePage = () => {
               <div className="power-desc-sm">{activePowerInfo.desc}</div>
             </div>
           </div>
+          {selectedPower === "apoutchou" && (
+            <div className="apoutchou-chrono">
+              <span className="chrono-val">{(clickGap / 1000).toFixed(1)}s</span>
+              <span className="chrono-dmg">~{Math.max(1, Math.floor(clickGap / 100))} dmg</span>
+            </div>
+          )}
         </div>
       )}
 

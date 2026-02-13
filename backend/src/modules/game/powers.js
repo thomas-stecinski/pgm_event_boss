@@ -23,6 +23,10 @@ const POWERS = {
     name: "Furie Cyclique",
     desc: "Degats en boucle : -1, 0, 1, 2, 3, 4, 5",
   },
+  apoutchou: {
+    name: "Apoutchou",
+    desc: "Plus l'ecart entre 2 clics est grand, plus le clic est fort (+1 par 0,1s)",
+  },
 };
 
 const POWER_IDS = Object.keys(POWERS);
@@ -38,9 +42,10 @@ const FURIE_CYCLE = [-1, 0, 1, 2, 3, 4, 5];
  * @param {string} powerId - ID du pouvoir
  * @param {number} clickCount - Nombre de clics effectues par le joueur (apres increment)
  * @param {number} gameProgress - Progression du jeu entre 0 et 1
+ * @param {number} lastClickGapMs - Ecart en ms depuis le dernier clic (0 si premier clic)
  * @returns {number} degats infliges
  */
-function calculateDamage(powerId, clickCount, gameProgress) {
+function calculateDamage(powerId, clickCount, gameProgress, lastClickGapMs = 0) {
   switch (powerId) {
     case "double_impact":
       return 2;
@@ -59,6 +64,9 @@ function calculateDamage(powerId, clickCount, gameProgress) {
 
     case "furie_cyclique":
       return FURIE_CYCLE[(clickCount - 1) % FURIE_CYCLE.length];
+
+    case "apoutchou":
+      return Math.max(1, Math.floor(lastClickGapMs / 100));
 
     default:
       return 1;

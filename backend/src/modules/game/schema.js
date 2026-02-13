@@ -18,6 +18,7 @@ const gameChoosePowerSchema = z.object({
     "retardement",
     "chance_critique",
     "furie_cyclique",
+    "apoutchou",
   ]),
 });
 
