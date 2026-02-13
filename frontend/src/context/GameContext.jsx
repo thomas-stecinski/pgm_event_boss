@@ -102,8 +102,14 @@ export const GameProvider = ({ children }) => {
       // Calcul de la team
       if (user && data.players) {
         const me = data.players.find(p => p.userId === user.userId);
-        if (me?.team) setGameState(prev => ({ ...prev, myTeam: me.team }));
+        if (me?.team) setRoomData(prev => ({ ...prev, team: me.team }));
       }
+    });
+
+
+    newSocket.on("room:myTeam", (data) => {
+      console.log("Received myTeam =", data);
+      setRoomData(prev => ({ ...prev, team: data.team }));
     });
 
     newSocket.on("game:choosing", () => setGameState(prev => ({ ...prev, phase: "CHOOSING" })));

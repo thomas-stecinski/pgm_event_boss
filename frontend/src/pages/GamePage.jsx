@@ -55,6 +55,15 @@ const GamePage = () => {
     return () => clearInterval(id);
   }, [isApoutchou]);
 
+
+const myPlayer = roomData?.players?.find(p => p.userId === user?.userId);
+const myTeam = myPlayer?.team; // "A" | "B" | undefined
+const myTeamName =
+  myTeam === "A" ? "MARIO" :
+  myTeam === "B" ? "BOWSER" :
+  "...";
+
+
   // Gestion des animations de clics (Effets visuels uniquement)
   const createOtherPlayerClickEffect = (damage, team) => {
     const el = document.createElement("div");
@@ -281,8 +290,8 @@ const GamePage = () => {
       {/* OVERLAY CHOOSING */}
       {phase === "CHOOSING" && !error && (
         <div className="overlay choosing-overlay">
-          <div className={`choosing-team-badge ${roomData?.team === "A" ? "badge-mario" : "badge-bowser"}`}>
-            TEAM {roomData?.team === "A" ? "MARIO" : roomData?.team === "B" ? "BOWSER" : "..."}
+          <div className={`choosing-team-badge ${myTeam === "A" ? "badge-mario" : "badge-bowser"}`}>
+            TEAM {myTeamName}
           </div>
           <h2>CHOOSE POWER</h2>
           <div className="cards-container">
