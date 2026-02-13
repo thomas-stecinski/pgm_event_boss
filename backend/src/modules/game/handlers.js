@@ -14,6 +14,7 @@ function startRoomTimer(io, roomId, choosingEndsAt, endsAt) {
   if (roomTimers.has(roomId)) return;
 
   let gameStarted = false;
+  let lastPrinceTick = 0;
 
   const intervalId = setInterval(async () => {
     const now = Date.now();
@@ -32,11 +33,54 @@ function startRoomTimer(io, roomId, choosingEndsAt, endsAt) {
     // Transition CHOOSING -> PLAYING (une seule fois)
     if (!gameStarted) {
       gameStarted = true;
+      lastPrinceTick = now;
       io.to(roomId).emit("game:play", { roomId, endsAt, durationMs: endsAt - choosingEndsAt });
     }
 
     // Phase PLAYING
     const timeLeftMs = Math.max(0, endsAt - now);
+
+    // PRINCE passif : toutes les 5 secondes, +40 pts
+    if (now - lastPrinceTick >= 5000) {
+      lastPrinceTick = now;
+      try {
+        const players = await roomRedis.getPlayers(roomId);
+        const sockets = await io.in(roomId).fetchSockets();
+        for (const p of players) {
+          let powerId = await gameRedis.getPlayerPower(roomId, p.userId);
+          if (!powerId) {
+            const offers = await gameRedis.getPlayerOffers(roomId, p.userId);
+            powerId = offers ? offers[0] : "double_impact";
+          }
+          if (powerId === "prince") {
+            const player = await gameRedis.getPlayer(roomId, p.userId);
+            if (!player?.team) continue;
+            const newScore = await gameRedis.incrPlayerScore(roomId, p.userId, 40);
+            await gameRedis.incrScore(roomId, player.team, 40);
+
+            // Notifier le joueur prince
+            const ps = sockets.find(s => s.user.userId === p.userId);
+            if (ps) {
+              ps.emit("game:personalScore:update", { roomId, userId: p.userId, personalScore: newScore });
+              ps.emit("game:princeImpot", { roomId, points: 40, personalScore: newScore });
+            }
+
+            // Mettre a jour le leaderboard pour tous
+            io.to(roomId).emit("game:playerClick", {
+              userId: p.userId,
+              name: p.name,
+              team: player.team,
+              damage: 40,
+              personalScore: newScore,
+              clickCount: 0,
+            });
+          }
+        }
+        await emitScore(io, roomId);
+      } catch (e) {
+        // Silently ignore prince tick errors
+      }
+    }
 
     io.to(roomId).emit("game:timer", {
       roomId,
