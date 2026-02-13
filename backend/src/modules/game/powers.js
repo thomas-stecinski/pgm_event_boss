@@ -25,7 +25,7 @@ const POWERS = {
   },
   apoutchou: {
     name: "Apoutchou",
-    desc: "Plus l'ecart entre 2 clics est grand, plus le clic est fort (+2 par 0,15s)",
+    desc: "Plus l'ecart entre 2 clics est grand, plus le clic est fort (+2 par 0,1s)",
   },
 };
 
@@ -66,7 +66,7 @@ function calculateDamage(powerId, clickCount, gameProgress, lastClickGapMs = 0) 
       return FURIE_CYCLE[(clickCount - 1) % FURIE_CYCLE.length];
 
     case "apoutchou":
-      return Math.max(1, Math.floor(lastClickGapMs / 50));
+      return Math.max(2, Math.floor(lastClickGapMs / 50));
 
     default:
       return 1;

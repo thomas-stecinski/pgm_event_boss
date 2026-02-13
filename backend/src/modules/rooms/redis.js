@@ -10,6 +10,7 @@ function playersKey(roomId){
 
 const ROOMS_INDEX = "rooms:index";
 
+
 async function createRoom ({ roomId, hostUser }) {
     const room = {
         roomId, 
@@ -104,6 +105,6 @@ module.exports = {
   getPlayers,
   addPlayer,
   removePlayer,
-  deleteRoom, 
+  deleteRoom,
   getAllRooms
 };
