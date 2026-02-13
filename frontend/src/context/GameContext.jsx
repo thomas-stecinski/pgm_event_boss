@@ -3,6 +3,8 @@ import { io } from "socket.io-client";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
 const STORAGE_KEY = "super_click_session";
+<<<<<<< HEAD
+const LAST_ROOM_KEY = "scb_last_room"; // 🔑 Clé pour se souvenir de la room
 const BROWSER_ID_KEY = "scb_browser_id";
 
 function getBrowserId() {
@@ -13,6 +15,8 @@ function getBrowserId() {
   }
   return id;
 }
+=======
+>>>>>>> 46b4436 (mise a jour mecanique de reconnexion)
 
 const GameContext = createContext(null);
 
@@ -101,7 +105,7 @@ export const GameProvider = ({ children }) => {
 
     // L'event clé pour l'assignation rapide
     newSocket.on("game:myTeam", (data) => {
-      setRoomData(prev => ({ ...prev, team: data.team }));
+      setGameState(prev => ({ ...prev, myTeam: data.team }));
     });
 
     newSocket.on("game:choosing", () => setGameState(prev => ({ ...prev, phase: "CHOOSING" })));
