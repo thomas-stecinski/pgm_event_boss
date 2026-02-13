@@ -193,6 +193,32 @@
   margin-top: 2px;
 }
 
+/* --- CHRONO APOUTCHOU --- */
+.apoutchou-chrono {
+  background: rgba(0, 0, 0, 0.85);
+  border: 3px solid #fbd000;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: 3px 3px 0 #000;
+}
+
+.chrono-val {
+  color: #fbd000;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.7rem;
+  text-shadow: 0 0 6px rgba(251, 208, 0, 0.5);
+}
+
+.chrono-dmg {
+  color: #4cff4c;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.5rem;
+  text-shadow: 0 0 4px rgba(76, 255, 76, 0.4);
+}
+
 /* ============================================
    HUD DROITE : mini leaderboard
    ============================================ */
