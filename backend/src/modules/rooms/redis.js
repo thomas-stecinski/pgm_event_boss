@@ -62,7 +62,7 @@ async function deleteRoom(roomId) {
 
 // Get All Rooms
 
-async function getAllRooms ({ onlyWaiting = false} = {}) {
+async function getAllRooms ({ onlyWaiting = false} = {}, userId = null) {
     const roomIds = await redis.smembers(ROOMS_INDEX);
 
      if (!roomIds.length) return [];
@@ -83,11 +83,20 @@ async function getAllRooms ({ onlyWaiting = false} = {}) {
 
   const validRooms = rooms.filter(Boolean);
 
-  if (onlyWaiting) {
-    return validRooms.filter((r) => r.status === "WAITING");
-  }
 
-  return validRooms;
+  const waitingRooms =  validRooms.filter((r) => r.status === "WAITING");
+
+  const playingRooms =  validRooms.filter((r) => r.status === "IN_GAME");
+
+  const validPlayingRooms = [];
+  for (const r of playingRooms) {
+    const players = await getPlayers(r.roomId);
+    if (players.some((p) => p.userId === userId)) {
+      validPlayingRooms.push(r);
+    }
+  }
+    return { waitingRooms, playingRooms: validPlayingRooms };
+
 }
 module.exports = {
   createRoom,
