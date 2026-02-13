@@ -137,7 +137,7 @@ function registerRoomHandlers(io, socket) {
     const room = await getRoom(roomId);
     const isHost = room && room.hostUserId === socket.user.userId;
 
-    await removePlayer(roomId, socket.user.userId);
+    // await removePlayer(roomId, socket.user.userId);
 
     if (isHost) {
       io.to(roomId).emit("room:deleted", { roomId, reason: "HOST_LEFT" });
